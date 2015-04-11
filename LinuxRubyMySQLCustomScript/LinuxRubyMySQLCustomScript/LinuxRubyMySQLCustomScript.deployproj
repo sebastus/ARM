@@ -25,7 +25,6 @@
   <Import Condition=" Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Deployment\1.1\DeploymentProject.targets') " Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Deployment\1.1\DeploymentProject.targets" />
   <!-- vertag<:>end -->
   <ItemGroup>
-    <Folder Include="Scripts\" />
     <Folder Include="Templates\" />
     <Folder Include="Tools\" />
   </ItemGroup>
@@ -35,6 +34,7 @@
     </None>
     <Content Include="Scripts\Publish-AzureResourceGroup.ps1" />
     <Content Include="Templates\DeploymentTemplate.json" />
+    <None Include="Scripts\InstallMySQL.sh" />
     <None Include="Templates\DeploymentTemplate.param.dev.json" />
   </ItemGroup>
   <ItemGroup>
