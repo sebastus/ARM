@@ -1,0 +1,60 @@
+﻿{
+    "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "newStorageAccountName": {
+            "value": "golivergtest2"
+        },
+        "storageAccountType": {
+            "value": "Standard_LRS"
+        },
+        "subscriptionId": {
+            "value": "743f6ed6-83a8-46f0-822d-ea93b953952d"
+        },
+        "mySqlPassword": {
+            "value": "P@ssw0rd!"
+        },
+        "location": {
+            "value": "West US"
+        },
+        "vmName": {
+            "value": "myVM"
+        },
+        "vmSize": {
+            "value": "Standard_A2"
+        },
+        "adminUserName": {
+            "value": "azureuser"
+        },
+        "vmSourceImageName": {
+            "value": "b39f27a8b8c64d52b05eac6a62ebad85__Ubuntu-12_04_5_LTS-amd64-server-20150309-en-us-30GB"
+        },
+        "nicName": {
+            "value": "myNIC"
+        },
+        "virtualNetworkName": {
+            "value": "myVNET"
+        },
+        "publicIPAddressName": {
+            "value": "myPublicIP"
+        },
+        "dnsNameForPublicIP": {
+            "value": "golivemysql"
+        },
+        "validation_key": {
+            "value": "-----BEGIN RSA PRIVATE KEY-----\r\nMIIEogIBAAKCAQEAzAsJd0nHVBgKHA2rEKfuPnnl/sysVZs6+AIGdKAdyrvDu4Cj\r\nAGyiN2BoWhM3MUkIv5up09lelMgVSatJX+eYf1QvdooTE80XBySRzXTb7qyl07EI\r\n2uo+fVZ2NnoTrAK6aU4tGWjPyUsO7yp4H6NZg8HksDONO/v1DdP9Mxw8fMdr5jtX\r\nkIcTdkXaO6619PHMi/E4Gb/FjNbuEC+LUYR2ZB/DnuafDTCHjdWaXOvoPupNEvG3\r\nAQwRlaiqwtLM1Rf6EpHR74nM77f4aD3+OM0/TncT91QsAxDV4hFRWCRnG6EvBqH/\r\n19v3RaqcqK74YNhlOOWDkYPrvfQKYXHO0ujE7QIDAQABAoIBABETt2YZcapTHL1+\r\nU1vggisObrZlkOLVTBknqjymjffCwT33JS1K6kSyN+maBBuG3kmTEKKfZbAUEtwI\r\njuqM6pF1jUdhhPk6R/wcDmvgpOuT3YkbHv+bbUF2NAyZKP5TeCCKH3Ip+IIDWyuf\r\nJVCYjkxdtPMeTWrAyqCupllZuqJCtCSARxfAjZu4dcjTeefnTdef2j6C8A3tC/In\r\n5mttraoNgWoPE0SvrH13XSHPt4AN9LbHUTcumCzthNL50f7kqstIL0+pbOZYI14m\r\nF36xS6hkrxjumQq6UNM7xYd38sJnmL8K39FpuwIspHQz3fgtWrWdrX1z9JzEmiDD\r\nYl33A80CgYEA9cnSp+0iZ/qBiCU75jE9nvvYw+37uF1Tn3ahHqz9h2plp+hlT6Gq\r\niIRapLLcwgk3za1PfbYC8dhF/sTm04WWmBw5+dsM4eCv6KP/v3z20IUf9mMnW/BJ\r\n/HSxiUwTA11I5zpTjrUXLlvB8a2hreAlzWSfcPDCTCF+KzPMN8Nj7ccCgYEA1IU3\r\nXzg/yBTBxtl7UYssX0XOh8GrkY5M8HOSaVBHOItWiJL23RU6bMIT7MnNvwbo7cpa\r\nHVwIjBbrA7arSWoT8x3sMGRbeWvcn2lxdjDnFB2peFQbi4rlTQKPHmFo+9VicrUI\r\n0A4FOF9mg9RYYSMOlyFn29/uMWIQFVkrKVETh6sCgYApWBmnRaxT8T94t0qsHfxP\r\nke2Uh6OgD5LRcBMKJe8/qBYReHYSPw+Ah0L4EV4xBXvtjQmiC8vTAp5DjLuHOSFr\r\n1NOrw70XAcSVTYDnpQ2fZcVKnMMyI+lOHhL/FVzdZAOvYZBMoQmVMroc/SgFJ380\r\nXYi0ZstIIxomCkB/4M4eYQKBgAiTu9Fe/sv/cnapDl4TJN5Pfe9itJ7yRE6sC2uu\r\nrsEsdniandX8Zlg/WPiEiIY+LCZ0tUBcF4g34JJMzArxeg6k1YR6eGqlHMleQxMH\r\nFDxumgleM6JlH64E/Wu3eLo5OXjxr4JeHn3Q8908M7jv5kXZNkzcc8uQbp+98oz/\r\nVa9zAoGADe0d2LU3hhA3JAXw6bKOH5TJuN8rrnn/m0JKujZN9BFivoXEC1ye81JL\r\nItr0qrnQEwv88xc/4dPsD+5ihjYRlvjtMiwvPe1kW0Xtv4odJp3q4pEToLsAicKF\r\ngc0uuz0HA2ifBjs1k7u0bC6blLO+gEkjineK/yADg1gfQY/sBoY=\r\n-----END RSA PRIVATE KEY-----"
+        },
+        "runlist": {
+            "value": "recipe[ruby]"
+        },
+        "chef_node_name": {
+            "value": "node1"
+        },
+        "chef_server_url": {
+            "value": "https://api.opscode.com/organizations/golive"
+        },
+        "validation_client_name": {
+            "value": "golive-validator"          
+        }
+    }
+}

@@ -1,0 +1,269 @@
+﻿{
+    "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "validation_key": {
+            "type": "string",
+            "metadata": { 
+                "description": "Contents of your org-validator.pem file"
+            }
+        },
+        "runlist": {
+            "type": "string",
+            "metadata": {
+                "description": "List of Chef recipes to run on the node."
+            }
+        },
+        "chef_node_name": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the chef node in the list of nodes on your chef server."
+            }
+        },
+        "chef_server_url": {
+            "type": "string",
+            "metadata": {
+                "description": "URL of your chef server, e.g. https://manage.chef.io/organizations"
+            }
+        },
+        "validation_client_name": {
+            "type": "string",
+            "metadata": {
+                "description": "User name for Chef PEM file to use."
+            }
+        },
+        "mySqlPassword": {
+            "type": "string",
+            "metadata": {
+                "description": "Admin password for MySQL"
+            }
+        },
+        "subscriptionId": {
+            "type": "string",
+            "metadata": {
+                "description": "ID of the subscription where the RG will be created"
+            }
+        },
+        "newStorageAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of storage account that will be created."
+            }
+        },
+        "storageAccountType": {
+            "type": "string",
+            "allowedValues": [
+                "Standard_LRS",
+                "Standard_GRS",
+                "Standard_ZRS"
+            ],
+            "metadata": {
+                "description": "Redundancy type of the storage account."
+            }
+        },
+
+        "location": {
+            "type": "string",
+            "allowedValues": [
+                "West US",
+                "East US"
+            ],
+            "metadata": {
+                "description": "Name of the Azure region where the object will be created."
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the VM to be created."
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "metadata": {
+                "description": "Size of the Vm to be created."
+            }
+        },
+        "adminUserName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the admin user in the new VM."
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password of admin user in the new VM - entered on invocation of this template."
+            }
+        },
+        "vmSourceImageName": {
+            "type": "string",
+            "metadata": {
+                "description": "ImageName of the VM image in the Azure Gallery."
+            }
+        },
+        "nicName": {
+            "type": "string",
+            "metadata": {
+                "description": "A name for your network interface."
+            }
+        },
+        "virtualNetworkName": {
+            "type": "string",
+            "metadata": {
+                "description": "A name for your virtual network."
+            }
+        },
+        "publicIPAddressName": {
+            "type": "string",
+            "metadata": {
+                "description": "A name for your public IP address."
+            }
+        },
+        "dnsNameForPublicIP": {
+            "type": "string",
+            "metadata": {
+                "description": "First part of the FQDN of your new VM."
+            }
+        }
+    },
+    "variables": {
+        "sourceImageName": "[concat('/',parameters('subscriptionId'),'/services/images/',parameters('vmSourceImageName'))]",
+        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',parameters('virtualNetworkName'))]",
+        "subnet1Ref": "[concat(variables('vnetID'),'/subnets/',variables('subnet1Name'))]",
+        "publicIPAddressType": "Dynamic",
+        "addressPrefix": "10.0.0.0/16",
+        "subnet1Name": "Subnet-1",
+        "subnet1Prefix": "10.0.0.0/24",
+        "vmStorageAccountContainerName": "vhds",
+        "vmExtensionName" : "LinuxChefExtension"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2014-12-01-preview",
+            "name": "[parameters('newStorageAccountName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "accountType": "[parameters('storageAccountType')]"
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2014-12-01-preview",
+            "name": "[parameters('publicIPAddressName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('dnsNameForPublicIP')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2014-12-01-preview",
+            "name": "[parameters('virtualNetworkName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('addressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('subnet1Name')]",
+                        "properties": {
+                            "addressPrefix": "[variables('subnet1Prefix')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2014-12-01-preview",
+            "name": "[parameters('nicName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/', parameters('publicIPAddressName'))]",
+                "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('publicIPAddressName'))]"
+                            },
+                            "subnet": {
+                                "id": "[variables('subnet1Ref')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2014-12-01-preview",
+            "name": "[parameters('vmName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[concat('Microsoft.Storage/storageAccounts/', parameters('newStorageAccountName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                    "computername": "[parameters('vmName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "sourceImage": {
+                        "id": "[variables('sourceImageName')]"
+                    },
+
+                    "destinationVhdsContainer": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/')]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',parameters('nicName'))]"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2014-12-01-preview",
+            "name": "[concat(parameters('vmName'),'/', variables('vmExtensionName'))]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[concat('Microsoft.Compute/virtualMachines/', parameters('vmName'))]"
+            ],
+            "properties": {
+                "publisher": "Chef.Bootstrap.WindowsAzure",
+                "type": "LinuxChefClient",
+                "typeHandlerVersion": "1204.12",
+                "settings": {
+                    "bootstrap_options": {
+                        "chef_node_name": "[parameters('chef_node_name')]",
+                        "chef_server_url": "[parameters('chef_server_url')]",
+                        "validation_client_name": "[parameters('validation_client_name')]"
+                    },
+                    "runlist": "[parameters('runlist')]"
+                },
+                "protectedSettings": {
+                    "validation_key": "[parameters('validation_key')]"
+                }
+            }
+        }
+    ]
+}
