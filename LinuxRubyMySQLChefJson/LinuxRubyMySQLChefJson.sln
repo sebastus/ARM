@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{151D2E53-A2C4-4D7D-83FE-D05416EBD58E}") = "LinuxRubyMySQLCustomScript", "LinuxRubyMySQLCustomScript\LinuxRubyMySQLCustomScript.deployproj", "{EB7FFAB2-1945-40A2-AFF1-23B9963F8E82}"
+Project("{151D2E53-A2C4-4D7D-83FE-D05416EBD58E}") = "LinuxRubyMySQLChefJson", "LinuxRubyMySQLCustomScript\LinuxRubyMySQLChefJson.deployproj", "{EB7FFAB2-1945-40A2-AFF1-23B9963F8E82}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
