@@ -1,0 +1,56 @@
+﻿{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "allowedValues": [
+                "West US",
+                "East US",
+                "West Europe",
+                "East Asia",
+                "Southeast Asia"
+            ],
+            "metadata": {
+                "description": "The region to deploy the resources into."
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the Azure virtual network."
+            }
+        },
+        "network_vnet_AddressSpace": {
+            "type": "string",
+            "metadata": {
+                "description": "Address Space of the Azure virtual network."
+            }
+        },
+        "network_subnets_array": {
+            "type": "array",
+            "metadata": {
+                "description": "Array of subnets to be built within the virtual network."
+            }
+        }
+    },
+    "variables": {
+        "network_subnets_array": "[parameters('network_subnets_array')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[parameters('vnetName')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('network_vnet_AddressSpace')]"
+                    ]
+                },
+                "subnets": "[variables('network_subnets_array')]"
+            }
+        }
+    ]
+}

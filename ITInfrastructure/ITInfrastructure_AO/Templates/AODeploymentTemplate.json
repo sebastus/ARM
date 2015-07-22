@@ -1,0 +1,518 @@
+﻿{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "newStorageAccountNamePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The prefix of the new storage account created to store the VMs disks, three different storage accounts will be created using this string as a prefix for the name"
+            }
+        },
+        "storageAccountType": {
+            "type": "string",
+            "allowedValues": [
+                "Standard_LRS",
+                "Standard_GRS",
+                "Standard_RAGRS",
+                "Premium_LRS"
+            ],
+            "metadata": {
+                "description": "The type of the Storage Account created"
+            },
+            "defaultValue": "Standard_LRS"
+        },
+        "location": {
+            "type": "string",
+            "allowedValues": [
+                "West US",
+                "East US",
+                "West Europe",
+                "East Asia",
+                "Southeast Asia"
+            ],
+            "metadata": {
+                "description": "The region to deploy the resources into"
+            }
+        },
+        "AO_FQDN_Prefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Prefix of the domain name of the AO VMs, e.g. <something>.cloudapp.net"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the Azure virtual network."
+            }
+        },
+        "adminUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the Administrator of the new VMs and Domain"
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The password for the Administrator account of the new VMs and Domain"
+            }
+        },
+        "assetLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The location of resources that the script is dependent on such as linked templates and DSC modules"
+            }
+        }
+    },
+    "variables": {
+        "compute_AvailabilitySet_AO_Name": "aoAvailabilitySet",
+        "compute_AvailabilitySet_AO_Id": "[resourceId('Microsoft.Compute/availabilitySets', variables('compute_AvailabilitySet_AO_Name'))]",
+
+        "compute_VM_sql1_Name": "aoSQL1",
+        "compute_VM_sql1_Id": "[resourceId('Microsoft.Compute/virtualMachines',variables('compute_VM_sql1_Name'))]",
+        "compute_VM_sql1_Size": "Standard_D2",
+        "compute_VM_sql1_ImagePublisher": "MicrosoftSQLServer",
+        "compute_VM_sql1_ImageOffer": "SQL2014-WS2012R2",
+        "compute_VM_sql1_ImageSKU": "Enterprise",
+        "compute_VM_sql1_SQLDiskSize": 1000,
+
+        "compute_VM_sql2_Name": "aoSQL2",
+        "compute_VM_sql2_Id": "[resourceId('Microsoft.Compute/virtualMachines',variables('compute_VM_sql2_Name'))]",
+        "compute_VM_sql2_Size": "Standard_D2",
+        "compute_VM_sql2_ImagePublisher": "MicrosoftSQLServer",
+        "compute_VM_sql2_ImageOffer": "SQL2014-WS2012R2",
+        "compute_VM_sql2_ImageSKU": "Enterprise",
+        "compute_VM_sql2_SQLDiskSize": 1000,
+
+        "compute_VM_sqlw_Name": "aoSQLw",
+        "compute_VM_sqlw_Id": "[resourceId('Microsoft.Compute/virtualMachines',variables('compute_VM_sqlw_Name'))]",
+        "compute_VM_sqlw_Size": "Standard_D1",
+        "compute_VM_sqlw_ImagePublisher": "MicrosoftWindowsServer",
+        "compute_VM_sqlw_ImageOffer": "WindowsServer",
+        "compute_VM_sqlw_ImageSKU": "2012-R2-Datacenter",
+        "compute_VM_sqlw_DataDiskSize": 128,
+
+        "network_PublicIPAddress_AO_Name": "AOPublicIP",
+        "network_PublicIPAddress_AO_ResourceId": "[resourceId('Microsoft.Network/publicIPAddresses',variables('network_PublicIPAddress_AO_Name'))]",
+
+        "network_LB_AOPub_Name": "publicAOLB",
+        "network_LB_AOPub_Id": "[resourceId('Microsoft.Network/loadBalancers',variables('network_LB_AOPub_Name'))]",
+        "network_LB_AOPub_FEName": "publicAOLBFE",
+        "network_LB_AOPub_FEId": "[concat(variables('network_LB_AOPub_Id'),'/frontendIPConfigurations/',variables('network_LB_AOPub_FEName'))]",
+        "network_LB_AOPub_BEName": "publicAOLBBE",
+        "network_LB_AOPub_BEId": "[concat(variables('network_LB_AOPub_Id'),'/backendAddressPools/',variables('network_LB_AOPub_BEName'))]",
+
+        "network_LB_AOPub_NatRule_sql1_Name": "sql1Nat",
+        "network_LB_AOPub_NatRule_sql1_Id": "[concat(variables('network_LB_AOPub_Id'),'/inboundNatRules/',variables('network_LB_AOPub_NatRule_sql1_Name'))]",
+        "network_LB_AOPub_NatRule_sql1_PublicPort": "50101",
+
+        "network_LB_AOPub_NatRule_sql2_Name": "sql2Nat",
+        "network_LB_AOPub_NatRule_sql2_Id": "[concat(variables('network_LB_AOPub_Id'),'/inboundNatRules/',variables('network_LB_AOPub_NatRule_sql2_Name'))]",
+        "network_LB_AOPub_NatRule_sql2_PublicPort": "50102",
+
+        "network_LB_AOPub_NatRule_sqlw_Name": "sqlwNat",
+        "network_LB_AOPub_NatRule_sqlw_Id": "[concat(variables('network_LB_AOPub_Id'),'/inboundNatRules/',variables('network_LB_AOPub_NatRule_sqlw_Name'))]",
+        "network_LB_AOPub_NatRule_sqlw_PublicPort": "50103",
+
+        "network_vNet_Id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+
+        "network_NIC_sql1_Name": "sql1NIC",
+        "network_NIC_sql1_Id": "[resourceId('Microsoft.Network/networkInterfaces',variables('network_NIC_sql1_Name'))]",
+        "network_NIC_sql1_PrivateIPAddress": "10.0.1.4",
+
+        "network_NIC_sql2_Name": "sql2NIC",
+        "network_NIC_sql2_Id": "[resourceId('Microsoft.Network/networkInterfaces',variables('network_NIC_sql2_Name'))]",
+        "network_NIC_sql2_PrivateIPAddress": "10.0.1.5",
+
+        "network_NIC_sqlw_Name": "sqlwNIC",
+        "network_NIC_sqlw_Id": "[resourceId('Microsoft.Network/networkInterfaces',variables('network_NIC_sqlw_Name'))]",
+        "network_NIC_sqlw_PrivateIPAddress": "10.0.1.10",
+
+        "network_subnet_SQL_name": "sqlSubnet",
+        "network_subnet_SQL_AddressSpace": "10.0.1.0/24",
+        "network_subnet_SQL_Id": "[concat(variables('network_vNet_Id'),'/subnets/',variables('network_subnet_SQL_name'))]",
+
+        "storage_Acct_1_Name": "[concat(parameters('newStorageAccountNamePrefix'), '0')]",
+        "storage_Acct_1_Id": "[resourceId('Microsoft.Storage/storageAccounts',variables('storage_Acct_1_Name'))]",
+        "storage_Acct_2_Name": "[concat(parameters('newStorageAccountNamePrefix'), '1')]",
+        "storage_Acct_2_Id": "[resourceId('Microsoft.Storage/storageAccounts',variables('storage_Acct_2_Name'))]",
+        "storage_Acct_3_Name": "[concat(parameters('newStorageAccountNamePrefix'), '2')]",
+        "storage_Acct_3_Id": "[resourceId('Microsoft.Storage/storageAccounts',variables('storage_Acct_3_Name'))]",
+        "storage_Acct_Container_Name": "vhds"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('network_PublicIPAddress_AO_Name')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[parameters('location')]",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('AO_FQDN_Prefix')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/loadBalancers",
+            "name": "[variables('network_LB_AOPub_Name')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[parameters('location')]",
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "[variables('network_LB_AOPub_FEName')]",
+                        "properties": {
+                            "publicIPAddress": {
+                                "id": "[variables('network_PublicIPAddress_AO_ResourceId')]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "[variables('network_LB_AOPub_BEName')]"
+                    }
+                ],
+                "inboundNatRules": [
+                    {
+                        "name": "[variables('network_LB_AOPub_NatRule_sql1_Name')]",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[variables('network_LB_AOPub_FEId')]"
+                            },
+                            "protocol": "tcp",
+                            "frontendPort": "[variables('network_LB_AOPub_NatRule_sql1_PublicPort')]",
+                            "backendPort": 3389,
+                            "enableFloatingIP": false
+                        }
+                    },
+                    {
+                        "name": "[variables('network_LB_AOPub_NatRule_sql2_Name')]",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[variables('network_LB_AOPub_FEId')]"
+                            },
+                            "protocol": "tcp",
+                            "frontendPort": "[variables('network_LB_AOPub_NatRule_sql2_PublicPort')]",
+                            "backendPort": 3389,
+                            "enableFloatingIP": false
+                        }
+                    },
+                    {
+                        "name": "[variables('network_LB_AOPub_NatRule_sqlw_Name')]",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[variables('network_LB_AOPub_FEId')]"
+                            },
+                            "protocol": "tcp",
+                            "frontendPort": "[variables('network_LB_AOPub_NatRule_sqlw_PublicPort')]",
+                            "backendPort": 3389,
+                            "enableFloatingIP": false
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Compute/availabilitySets",
+            "name": "[variables('compute_AvailabilitySet_AO_Name')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[parameters('location')]"
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('network_NIC_sql1_Name')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[variables('network_LB_AOPub_Id')]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "privateIP1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[variables('network_NIC_sql1_PrivateIPAddress')]",
+                            "subnet": {
+                                "id": "[variables('network_subnet_SQL_Id')]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[variables('network_LB_AOPub_BEId')]"
+                                }
+                            ],
+                            "loadBalancerInboundNatRules": [
+                                {
+                                    "id": "[variables('network_LB_AOPub_NatRule_sql1_Id')]"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('network_NIC_sql2_Name')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[variables('network_LB_AOPub_Id')]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "privateIP1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[variables('network_NIC_sql2_PrivateIPAddress')]",
+                            "subnet": {
+                                "id": "[variables('network_subnet_SQL_Id')]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[variables('network_LB_AOPub_BEId')]"
+                                }
+                            ],
+                            "loadBalancerInboundNatRules": [
+                                {
+                                    "id": "[variables('network_LB_AOPub_NatRule_sql2_Id')]"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('network_NIC_sqlw_Name')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[variables('network_LB_AOPub_Id')]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "privateIP1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[variables('network_NIC_sqlw_PrivateIPAddress')]",
+                            "subnet": {
+                                "id": "[variables('network_subnet_SQL_Id')]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[variables('network_LB_AOPub_BEId')]"
+                                }
+                            ],
+                            "loadBalancerInboundNatRules": [
+                                {
+                                    "id": "[variables('network_LB_AOPub_NatRule_sqlw_Id')]"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+		{
+			"apiVersion": "2015-05-01-preview",
+			"type": "Microsoft.Compute/virtualMachines",
+			"name": "[variables('compute_VM_sql1_Name')]",
+			"location": "[parameters('location')]",			
+			"dependsOn": [
+				"[variables('network_NIC_sql1_Id')]",
+				"[variables('compute_AvailabilitySet_AO_Id')]"
+			],
+			"properties": {
+				"hardwareProfile": {
+					"vmSize": "[variables('compute_VM_sql1_Size')]"
+				},
+				"availabilitySet": {
+					"id": "[resourceId('Microsoft.Compute/availabilitySets', variables('compute_AvailabilitySet_AO_Name'))]"
+				},
+				"osProfile": {
+					"computername": "[variables('compute_VM_sql1_Name')]",
+					"adminUsername": "[parameters('adminUsername')]",
+					"adminPassword": "[parameters('adminPassword')]"
+				},
+				"storageProfile": {
+					"imageReference": {
+						"publisher": "[variables('compute_VM_sql1_ImagePublisher')]",
+						"offer": "[variables('compute_VM_sql1_ImageOffer')]",
+						"sku": "[variables('compute_VM_sql1_ImageSKU')]",
+						"version": "latest"
+					},
+					"osDisk": {
+						"name": "osdisk",
+						"vhd": {
+							"uri": "[concat('http://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/',variables('compute_VM_sql1_Name'), '-osdisk.vhd')]"
+						},
+						"caching": "ReadWrite",
+						"createOption": "FromImage"
+					},
+					"dataDisks": [
+						{
+							"vhd": {
+								"uri":"[concat('http://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql1_Name'), '-data-1.vhd')]"
+							},
+							"name":"[concat(variables('compute_VM_sql1_Name'),'-data-disk1')]",
+							"caching" : "None",
+							"createOption": "empty",
+							"diskSizeGB": "[variables('compute_VM_sql1_SQLDiskSize')]",
+							"lun": 0
+						},
+						{
+							"vhd": {
+								"uri":"[concat('http://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql1_Name'), '-log.vhd')]"
+							},
+							"name":"[concat(variables('compute_VM_sql1_Name'),'-log-disk1')]",
+							"caching" : "None",
+							"createOption": "empty",
+							"diskSizeGB": "[variables('compute_VM_sql1_SQLDiskSize')]",
+							"lun": 1
+						}
+					]
+				},
+				"networkProfile": {
+					"networkInterfaces": [
+						{
+							"id": "[variables('network_NIC_sql1_Id')]"
+						}
+					]
+				}
+			}
+		},
+        {
+            "apiVersion": "2015-05-01-preview",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('compute_VM_sql2_Name')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[variables('network_NIC_sql2_Id')]",
+                "[variables('compute_AvailabilitySet_AO_Id')]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables('compute_VM_sql2_Size')]"
+                },
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('compute_AvailabilitySet_AO_Name'))]"
+                },
+                "osProfile": {
+                    "computername": "[variables('compute_VM_sql2_Name')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('compute_VM_sql2_ImagePublisher')]",
+                        "offer": "[variables('compute_VM_sql2_ImageOffer')]",
+                        "sku": "[variables('compute_VM_sql2_ImageSKU')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "osdisk",
+                        "vhd": {
+                            "uri": "[concat('http://',variables('storage_Acct_2_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/',variables('compute_VM_sql2_Name'), '-osdisk.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    },
+                    "dataDisks": [
+                        {
+                            "vhd": {
+                                "uri": "[concat('http://',variables('storage_Acct_2_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql2_Name'), '-data-1.vhd')]"
+                            },
+                            "name": "[concat(variables('compute_VM_sql1_Name'),'-data-disk1')]",
+                            "caching": "None",
+                            "createOption": "empty",
+                            "diskSizeGB": "[variables('compute_VM_sql2_SQLDiskSize')]",
+                            "lun": 0
+                        },
+                        {
+                            "vhd": {
+                                "uri": "[concat('http://',variables('storage_Acct_2_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql2_Name'), '-log.vhd')]"
+                            },
+                            "name": "[concat(variables('compute_VM_sql1_Name'),'-log-disk1')]",
+                            "caching": "None",
+                            "createOption": "empty",
+                            "diskSizeGB": "[variables('compute_VM_sql2_SQLDiskSize')]",
+                            "lun": 1
+                        }
+                    ]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[variables('network_NIC_sql2_Id')]"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "apiVersion": "2015-05-01-preview",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('compute_VM_sqlw_Name')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[variables('network_NIC_sqlw_Id')]",
+                "[variables('compute_AvailabilitySet_AO_Id')]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables('compute_VM_sqlw_Size')]"
+                },
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('compute_AvailabilitySet_AO_Name'))]"
+                },
+                "osProfile": {
+                    "computername": "[variables('compute_VM_sqlw_Name')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('compute_VM_sqlw_ImagePublisher')]",
+                        "offer": "[variables('compute_VM_sqlw_ImageOffer')]",
+                        "sku": "[variables('compute_VM_sqlw_ImageSKU')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "osdisk",
+                        "vhd": {
+                            "uri": "[concat('http://',variables('storage_Acct_3_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/',variables('compute_VM_sqlw_Name'), '-osdisk.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    },
+                    "dataDisks": [
+                        {
+                            "vhd": {
+                                "uri": "[concat('http://',variables('storage_Acct_3_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sqlw_Name'), '-data-1.vhd')]"
+                            },
+                            "name": "[concat(variables('compute_VM_sql1_Name'),'-data-disk1')]",
+                            "caching": "None",
+                            "createOption": "empty",
+                            "diskSizeGB": "[variables('compute_VM_sqlw_DataDiskSize')]",
+                            "lun": 0
+                        }
+                    ]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[variables('network_NIC_sqlw_Id')]"
+                        }
+                    ]
+                }
+            }
+        }    
+    ]
+}
