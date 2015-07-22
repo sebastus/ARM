@@ -103,6 +103,17 @@
         "network_LB_AOPub_BEName": "publicAOLBBE",
         "network_LB_AOPub_BEId": "[concat(variables('network_LB_AOPub_Id'),'/backendAddressPools/',variables('network_LB_AOPub_BEName'))]",
 
+        "network_LB_AOSQL_Name": "sqlAOLB",
+        "network_LB_AOSQL_Id": "[resourceId('Microsoft.Network/loadBalancers',variables('network_LB_AOSQL_Name'))]",
+        "network_LB_AOSQL_FEName": "sqlAOLBFE",
+        "network_LB_AOSQL_FEId": "[concat(variables('network_LB_AOSQL_Id'),'/frontendIPConfigurations/',variables('network_LB_AOSQL_FEName'))]",
+        "network_LB_AOSQL_BEName": "sqlAOLBBE",
+        "network_LB_AOSQL_BEId": "[concat(variables('network_LB_AOSQL_Id'),'/backendAddressPools/',variables('network_LB_AOSQL_BEName'))]",
+        "network_LB_AOSQL_StaticIPAddress": "10.0.1.100",
+        "network_LB_AOSQL_LBRulesName": "sqlAORules",
+        "network_LB_AOSQL_ProbeName": "sqlAOProbe",
+        "network_LB_AOSQL_ProbeId": "[concat(variables('network_LB_AOSQL_Id'),'/probes/',variables('network_LB_AOSQL_ProbeName'))]",
+
         "network_LB_AOPub_NatRule_sql1_Name": "sql1Nat",
         "network_LB_AOPub_NatRule_sql1_Id": "[concat(variables('network_LB_AOPub_Id'),'/inboundNatRules/',variables('network_LB_AOPub_NatRule_sql1_Name'))]",
         "network_LB_AOPub_NatRule_sql1_PublicPort": "50101",
@@ -210,6 +221,62 @@
                             "frontendPort": "[variables('network_LB_AOPub_NatRule_sqlw_PublicPort')]",
                             "backendPort": 3389,
                             "enableFloatingIP": false
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2015-05-01-preview",
+            "name": "[variables('network_LB_AOSQL_Name')]",
+            "type": "Microsoft.Network/loadBalancers",
+            "location": "[parameters('location')]",            
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "[variables('network_LB_AOSQL_FEName')]",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[variables('network_LB_AOSQL_StaticIPAddress')]",
+                            "subnet": {
+                                "id": "[variables('network_subnet_SQL_Id')]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "[variables('network_LB_AOSQL_BEName')]"
+                    }
+                ],
+                "loadBalancingRules": [
+                    {
+                        "name": "[variables('network_LB_AOSQL_LBRulesName')]",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[variables('network_LB_AOSQL_FEId')]"
+                            },
+                            "backendAddressPool": {
+                                "id": "[variables('network_LB_AOSQL_BEId')]"
+                            },
+                            "probe": {
+                                "id": "[variables('network_LB_AOSQL_ProbeId')]"
+                            },
+                            "protocol": "tcp",
+                            "frontendPort": 1433,
+                            "backendPort": 1433,
+                            "enableFloatingIP": true
+                        }
+                    }
+                ],
+                "probes": [
+                    {
+                        "name": "[variables('network_LB_AOSQL_ProbeName')]",
+                        "properties": {
+                            "protocol": "tcp",
+                            "port": 59999,
+                            "intervalInSeconds": "5",
+                            "numberOfProbes": "2"
                         }
                     }
                 ]
