@@ -22,6 +22,9 @@
         },
         "assetLocation": {
             "value": "https://goliveazurewest.blob.core.windows.net/public"
-        }
+        },
+		"sqlServerServiceAccountPassword":{
+			"value": "P@ssw0rd!"
+		}
     }
 }

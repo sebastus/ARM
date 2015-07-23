@@ -63,7 +63,20 @@
             "metadata": {
                 "description": "The location of resources that the script is dependent on such as linked templates and DSC modules"
             }
-        }
+        },
+        "sqlServerServiceAccountUserName":{
+			"type":"string",
+			"metadata": {
+				"description": "The SQL Server Service account name"
+			},
+			"defaultValue":"sqlservice"
+		},
+		"sqlServerServiceAccountPassword":{
+			"type": "securestring",
+			"metadata": {
+				"description": "The SQL Server Service account password"
+			}
+		}
     },
     "variables": {
         "compute_AvailabilitySet_AO_Name": "aoAvailabilitySet",
@@ -94,6 +107,14 @@
         "compute_VM_sqlw_DataDiskSize": 128,
 
         "deployments_nic_TemplateURL": "[concat(parameters('assetLocation'),'/nic.json')]",
+        "deployments_domain_Name": "goliveIT.com",
+        "deployments_fsw_TemplateURL": "[concat(parameters('assetLocation'),'/CreateFileShareWitness.ps1.zip')]",
+        "deployments_fsw_ConfigFunction": "CreateFileShareWitness.ps1\\CreateFileShareWitness",
+        "deployments_fsw_SharePath": "[concat(parameters('AO_FQDN_Prefix'),'-fsw')]",
+        "deployments_fsw_ExtensionReference": "[concat('Microsoft.Compute/virtualMachines/', variables('compute_VM_sqlw_Name'), '/extensions/CreateFileShareWitness')]",
+        "deployments_sqlao_ModulesURL": "[concat(parameters('assetLocation'),'/PrepareAlwaysOnSqlServer.ps1.zip')]",
+        "deployments_sqlao_ConfigFunction": "PrepareAlwaysOnSqlServer.ps1\\PrepareAlwaysOnSqlServer",
+        "deployments_sqlao_EndpointName": "[concat(parameters('AO_FQDN_Prefix'),'-hadr')]",
 
         "network_PublicIPAddress_AO_Name": "AOPublicIP",
         "network_PublicIPAddress_AO_ResourceId": "[resourceId('Microsoft.Network/publicIPAddresses',variables('network_PublicIPAddress_AO_Name'))]",
@@ -634,6 +655,44 @@
                 }
             }
         },
+		{
+			"type": "Microsoft.Compute/virtualMachines/extensions",
+			"name": "[concat(variables('compute_VM_sql1_Name'),'/sqlAOPrepare')]",
+			"apiVersion": "2015-05-01-preview",
+			"location": "[parameters('location')]",
+			"dependsOn":[
+				"[variables('compute_VM_sql1_Id')]",
+				"[variables('deployments_fsw_ExtensionReference')]",
+				"Microsoft.Resources/deployments/UpdateSQL1Nic"
+			],
+			"properties": {
+				"publisher": "Microsoft.Powershell",
+				"type": "DSC",
+				"typeHandlerVersion": "2.0",
+				"settings": {
+					"modulesUrl": "[variables('deployments_sqlao_ModulesURL')]",
+					"configurationFunction": "[variables('deployments_sqlao_ConfigFunction')]",
+					"properties": {
+						"domainName": "[variables('deployments_domain_Name')]",
+						"sqlAlwaysOnEndpointName":"[variables('deployments_sqlao_EndpointName')]",
+						"adminCreds":{
+							"userName": "[parameters('adminUserName')]",
+							"password": "PrivateSettingsRef:adminPassword"
+						},
+						"sqlServiceCreds":{
+							"userName": "[parameters('sqlServerServiceAccountUserName')]",
+							"password": "PrivateSettingsRef:sqlServerServiceAccountPassword"
+						}
+					}
+				},
+				"protectedSettings": {
+					"items": {
+						"adminPassword": "[parameters('adminPassword')]",
+						"sqlServerServiceAccountPassword": "[parameters('sqlServerServiceAccountPassword')]"
+					}
+				}
+			}
+		},
         {
             "apiVersion": "2015-05-01-preview",
             "type": "Microsoft.Compute/virtualMachines",
@@ -759,6 +818,38 @@
                     ]
                 }
             }
-        }
+        },
+		{
+			"type": "Microsoft.Compute/virtualMachines/extensions",
+			"name": "[concat(variables('compute_VM_sqlw_Name'),'/CreateFileShareWitness')]",
+			"apiVersion": "2015-05-01-preview",
+			"location": "[parameters('location')]",
+			"dependsOn":[
+				"Microsoft.Resources/deployments/UpdateSQLWNic",
+				"[variables('compute_VM_sqlw_Id')]"
+			],
+			"properties": {
+				"publisher": "Microsoft.Powershell",
+				"type": "DSC",
+				"typeHandlerVersion": "2.0",
+				"settings": {
+					"modulesUrl": "[variables('deployments_fsw_TemplateURL')]",
+					"configurationFunction": "[variables('deployments_fsw_ConfigFunction')]",
+					"properties": {
+						"domainName": "[variables('deployments_domain_Name')]",
+						"sharePath":"[variables('deployments_fsw_SharePath')]",
+						"adminCreds":{
+							"userName": "[parameters('adminUserName')]",
+							"password": "PrivateSettingsRef:adminPassword"
+						}
+					}
+				},
+				"protectedSettings": {
+					"items": {
+						"adminPassword": "[parameters('adminPassword')]"
+					}
+				}
+			}
+		}
     ]
 }
