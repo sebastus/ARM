@@ -96,7 +96,7 @@
         "deployments_vnet_TemplateURL": "[concat(parameters('assetLocation'),'/DeploymentOfVnet.json')]",
         "deployments_vnetplusdns_TemplateURL": "[concat(parameters('assetLocation'),'/DeploymentOfVnetDNS.json')]",
         "deployments_domain_Name": "goliveIT.com",
-        "deployments_VNET_DNSUpdate_ResourceId": "[resourceId('Microsoft.Resources/deployments', 'UpdateVNetDNS1')]",
+        "deployments_NIC_DC1Update_ResourceId": "[resourceId('Microsoft.Resources/deployments', 'UpdateVNetDNS1')]",
 
         "network_PublicIPAddress_AD_Name": "ADPublicIP",
         "network_PublicIPAddress_AD_ResourceId": "[resourceId('Microsoft.Network/publicIPAddresses',variables('network_PublicIPAddress_AD_Name'))]",
@@ -219,12 +219,6 @@
             }
         },
         {
-            "type": "Microsoft.Compute/availabilitySets",
-            "name": "[variables('compute_AvailabilitySet_AD_Name')]",
-            "apiVersion": "2015-05-01-preview",
-            "location": "[parameters('location')]"
-        },
-        {
             "type": "Microsoft.Network/loadBalancers",
             "name": "[variables('network_LB_Public_Name')]",
             "apiVersion": "2015-05-01-preview",
@@ -275,7 +269,13 @@
                     }
                 ]
             }
-        },        
+        },
+        {
+            "type": "Microsoft.Compute/availabilitySets",
+            "name": "[variables('compute_AvailabilitySet_AD_Name')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[parameters('location')]"
+        },
         {
             "type": "Microsoft.Network/networkInterfaces",
             "name": "[variables('network_NIC_dc1_Name')]",
@@ -401,37 +401,39 @@
                         }
                     ]
                 }
-            }
-        },
-        {
-            "type": "Microsoft.Compute/virtualMachines/extensions",
-            "name": "[variables('compute_VM_dc1_Extension_Name')]",
-            "apiVersion": "2015-05-01-preview",
-            "location": "[parameters('location')]",
-            "dependsOn": [
-                "[variables('compute_VM_dc1_Id')]"
-            ],
-            "properties": {
-                "publisher": "Microsoft.Powershell",
-                "type": "DSC",
-                "typeHandlerVersion": "2.1",
-                "settings": {
-                    "modulesUrl": "[variables('compute_VM_dc1_ModulesURL')]",
-                    "configurationFunction": "[variables('compute_VM_dc1_ConfigFunction')]",
+            },
+            "resources": [
+                {
+                    "type": "Microsoft.Compute/virtualMachines/extensions",
+                    "name": "[variables('compute_VM_dc1_Extension_Name')]",
+                    "apiVersion": "2015-05-01-preview",
+                    "location": "[parameters('location')]",
+                    "dependsOn": [
+                        "[variables('compute_VM_dc1_Id')]"
+                    ],
                     "properties": {
-                        "domainName": "[variables('deployments_domain_Name')]",
-                        "adminCreds": {
-                            "userName": "[parameters('adminUserName')]",
-                            "password": "PrivateSettingsRef:adminPassword"
+                        "publisher": "Microsoft.Powershell",
+                        "type": "DSC",
+                        "typeHandlerVersion": "2.1",
+                        "settings": {
+                            "modulesUrl": "[variables('compute_VM_dc1_ModulesURL')]",
+                            "configurationFunction": "[variables('compute_VM_dc1_ConfigFunction')]",
+                            "properties": {
+                                "domainName": "[variables('deployments_domain_Name')]",
+                                "adminCreds": {
+                                    "userName": "[parameters('adminUserName')]",
+                                    "password": "PrivateSettingsRef:adminPassword"
+                                }
+                            }
+                        },
+                        "protectedSettings": {
+                            "items": {
+                                "adminPassword": "[parameters('adminPassword')]"
+                            }
                         }
                     }
-                },
-                "protectedSettings": {
-                    "items": {
-                        "adminPassword": "[parameters('adminPassword')]"
-                    }
                 }
-            }
+            ]
         },
         {
 			"type": "Microsoft.Resources/deployments",
@@ -463,7 +465,8 @@
             "dependsOn": [
                 "[variables('storage_Acct_2_Id')]",
                 "[variables('network_NIC_dc2_Id')]",
-                "[variables('compute_AvailabilitySet_AD_Id')]"
+                "[variables('compute_AvailabilitySet_AD_Id')]",
+                "[variables('deployments_NIC_DC1Update_ResourceId')]"
             ],
             "properties": {
                 "hardwareProfile": {
@@ -520,8 +523,7 @@
 			"apiVersion": "2015-05-01-preview",
 			"location": "[parameters('location')]",
 			"dependsOn":[
-				"[variables('compute_VM_dc2_Id')]",
-				"[variables('deployments_VNET_DNSUpdate_ResourceId')]"
+				"[variables('compute_VM_dc2_Id')]"
 			],
 			"properties": {
 				"publisher": "Microsoft.Powershell",
@@ -546,8 +548,8 @@
 			}
 		},
         {
-            "type": "Microsoft.Resources/deployments",
             "name": "UpdateVNetDNS2",
+            "type": "Microsoft.Resources/deployments",
             "apiVersion": "2015-01-01",
             "dependsOn": [
                 "[variables('compute_VM_dc2_Extension')]"
@@ -558,13 +560,13 @@
                     "uri": "[variables('deployments_vnetplusdns_TemplateURL')]",
                     "contentVersion": "1.0.0.0"
                 },
-                "parameters": {
-                    "location": { "value": "[parameters('location')]" },
-                    "vnetName": { "value": "[parameters('vnetName')]" },
-                    "network_vnet_AddressSpace": { "value": "[variables('network_vnet_AddressSpace')]" },
-                    "network_subnets_array": { "value": "[variables('network_subnets_array')]" },
-                    "DNSServerAddress": { "value": [ "[variables('network_NIC_dc1_PrivateIPAddress')]", "[variables('network_NIC_dc2_PrivateIPAddress')]" ] }
-                }
+				"parameters": {
+					"location": {"value":"[parameters('location')]"},
+					"vnetName": {"value":"[parameters('vnetName')]"},
+					"network_vnet_AddressSpace": {"value":"[variables('network_vnet_AddressSpace')]"},
+					"network_subnets_array": {"value":"[variables('network_subnets_array')]"},
+					"DNSServerAddress": {"value":["[variables('network_NIC_dc1_PrivateIPAddress')]","[variables('network_NIC_dc2_PrivateIPAddress')]"]}
+				}
             }
         }
     ]

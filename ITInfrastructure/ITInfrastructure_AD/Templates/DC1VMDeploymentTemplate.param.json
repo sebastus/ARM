@@ -2,14 +2,17 @@
     "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
+        "documentation": {
+            "value": ""
+        },
         "newStorageAccountNamePrefix": {
             "value": "golivedc1storagea"
         },
         "location": {
             "value": "West US"
         },
-        "AO_FQDN_Prefix": {
-            "value": "goliveao"
+        "AD_FQDN_Prefix": {
+            "value": "goliveit"
         },
         "vnetName": {
             "value": "itvnet"
@@ -22,9 +25,6 @@
         },
         "assetLocation": {
             "value": "https://goliveazurewest.blob.core.windows.net/public"
-        },
-		"sqlServerServiceAccountPassword":{
-			"value": "P@ssw0rd!"
-		}
+        }
     }
 }

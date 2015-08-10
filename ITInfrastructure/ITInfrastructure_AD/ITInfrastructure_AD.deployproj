@@ -25,20 +25,23 @@
   <Import Condition=" Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Deployment\1.1\DeploymentProject.targets') " Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Deployment\1.1\DeploymentProject.targets" />
   <!-- vertag<:>end -->
   <ItemGroup>
-    <Folder Include="Scripts\" />
     <Folder Include="Tools\" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Deployment.targets">
       <Visible>False</Visible>
     </None>
+    <Content Include="Scripts\Deploy-AzureResourceGroup-DC1VM.ps1" />
     <Content Include="Scripts\Deploy-AzureResourceGroup.ps1" />
+    <Content Include="Templates\ADDeploymentTemplate.json" />
     <Content Include="Templates\DeploymentOfVnetDNS.json" />
     <Content Include="Templates\DeploymentOfVnet.json" />
-    <Content Include="Templates\ADDeploymentTemplate.json" />
+    <Content Include="Templates\ADDeploymentTemplate-Orig.json" />
     <None Include="Templates\ADDeploymentTemplate.param.dev.json" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Templates\DC1VMDeploymentTemplate.json" />
+    <None Include="Templates\DC1VMDeploymentTemplate.param.json" />
     <None Include="Tools\AzCopy.exe" />
     <None Include="Tools\Microsoft.Data.Edm.dll">
       <Visible>False</Visible>

@@ -411,118 +411,6 @@
             }
         },
         {
-            "type": "Microsoft.Resources/deployments",
-            "name": "UpdateSQL1Nic",
-            "apiVersion": "2015-01-01",
-            "dependsOn": [
-                "[variables('compute_VM_sql1_Id')]"
-            ],
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[variables('deployments_nic_TemplateURL')]",
-                    "contentVersion": "1.0.0.0"
-                },
-                "parameters": {
-                    "location": {
-                        "value": "[parameters('location')]"
-                    },
-                    "nicName": {
-                        "value": "[variables('network_NIC_sql1_Name')]"
-                    },
-                    "ipConfigurations": {
-                        "value": [
-                            {
-                                "name": "privateIP1",
-                                "properties": {
-                                    "privateIPAllocationMethod": "Static",
-                                    "privateIPAddress": "[variables('network_NIC_sql1_PrivateIPAddress')]",
-                                    "subnet": {
-                                        "id": "[variables('network_subnet_SQL_Id')]"
-                                    },
-                                    "loadBalancerBackendAddressPools": [
-                                        {
-                                            "id": "[variables('network_LB_AOPub_BEId')]"
-                                        },
-                                        {
-                                            "id": "[variables('network_LB_AOSQL_BEId')]"
-                                        }
-                                    ],
-                                    "loadBalancerInboundNatRules": [
-                                        {
-                                            "id": "[variables('network_LB_AOPub_NatRule_sql1_Id')]"
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
-                    },
-                    "dnsServers": {
-                        "value": [
-                            "[variables('network_NIC_dc1_PrivateIPAddress')]",
-                            "[variables('network_NIC_dc2_PrivateIPAddress')]"
-                        ]
-                    }
-                }
-            }
-        },
-        {
-            "type": "Microsoft.Resources/deployments",
-            "name": "UpdateSQL2Nic",
-            "apiVersion": "2015-01-01",
-            "dependsOn": [
-                "[variables('compute_VM_sql2_Id')]"
-            ],
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[variables('deployments_nic_TemplateURL')]",
-                    "contentVersion": "1.0.0.0"
-                },
-                "parameters": {
-                    "location": {
-                        "value": "[parameters('location')]"
-                    },
-                    "nicName": {
-                        "value": "[variables('network_NIC_sql2_Name')]"
-                    },
-                    "ipConfigurations": {
-                        "value": [
-                            {
-                                "name": "privateIP1",
-                                "properties": {
-                                    "privateIPAllocationMethod": "Static",
-                                    "privateIPAddress": "[variables('network_NIC_sql2_PrivateIPAddress')]",
-                                    "subnet": {
-                                        "id": "[variables('network_subnet_SQL_Id')]"
-                                    },
-                                    "loadBalancerBackendAddressPools": [
-                                        {
-                                            "id": "[variables('network_LB_AOPub_BEId')]"
-                                        },
-                                        {
-                                            "id": "[variables('network_LB_AOSQL_BEId')]"
-                                        }
-                                    ],
-                                    "loadBalancerInboundNatRules": [
-                                        {
-                                            "id": "[variables('network_LB_AOPub_NatRule_sql2_Id')]"
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
-                    },
-                    "dnsServers": {
-                        "value": [
-                            "[variables('network_NIC_dc1_PrivateIPAddress')]",
-                            "[variables('network_NIC_dc2_PrivateIPAddress')]"
-                        ]
-                    }
-                }
-            }
-        },
-        {
             "type": "Microsoft.Network/networkInterfaces",
             "name": "[variables('network_NIC_sqlw_Name')]",
             "apiVersion": "2015-05-01-preview",
@@ -553,60 +441,6 @@
                         }
                     }
                 ]
-            }
-        },
-        {
-            "type": "Microsoft.Resources/deployments",
-            "name": "UpdateSQLWNic",
-            "apiVersion": "2015-01-01",
-            "dependsOn": [
-                "[variables('compute_VM_sqlw_Id')]"
-            ],
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[variables('deployments_nic_TemplateURL')]",
-                    "contentVersion": "1.0.0.0"
-                },
-                "parameters": {
-                    "location": {
-                        "value": "[parameters('location')]"
-                    },
-                    "nicName": {
-                        "value": "[variables('network_NIC_sqlw_Name')]"
-                    },
-                    "ipConfigurations": {
-                        "value": [
-                            {
-                                "name": "privateIP1",
-                                "properties": {
-                                    "privateIPAllocationMethod": "Static",
-                                    "privateIPAddress": "[variables('network_NIC_sqlw_PrivateIPAddress')]",
-                                    "subnet": {
-                                        "id": "[variables('network_subnet_SQL_Id')]"
-                                    },
-                                    "loadBalancerBackendAddressPools": [
-                                        {
-                                            "id": "[variables('network_LB_AOPub_BEId')]"
-                                        }
-                                    ],
-                                    "loadBalancerInboundNatRules": [
-                                        {
-                                            "id": "[variables('network_LB_AOPub_NatRule_sqlw_Id')]"
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
-                    },
-                    "dnsServers": {
-                        "value": [
-                            "[variables('network_NIC_dc1_PrivateIPAddress')]",
-                            "[variables('network_NIC_dc2_PrivateIPAddress')]"
-                        ]
-                    }
-
-                }
             }
         },
         {
@@ -677,43 +511,6 @@
                 }
             }
         },
-		{
-			"type": "Microsoft.Compute/virtualMachines/extensions",
-			"name": "[concat(variables('compute_VM_sql1_Name'),'/sqlAOPrepare')]",
-			"apiVersion": "2015-05-01-preview",
-			"location": "[parameters('location')]",
-			"dependsOn":[
-				"[variables('deployments_fsw_ExtensionId')]",
-				"Microsoft.Resources/deployments/UpdateSQL1Nic"
-			],
-			"properties": {
-				"publisher": "Microsoft.Powershell",
-				"type": "DSC",
-				"typeHandlerVersion": "2.1",
-				"settings": {
-					"modulesUrl": "[variables('deployments_sqlao_ModulesURL')]",
-					"configurationFunction": "[variables('deployments_sqlao_ConfigFunction')]",
-					"properties": {
-						"domainName": "[variables('deployments_domain_Name')]",
-						"sqlAlwaysOnEndpointName":"[variables('deployments_sqlao_EndpointName')]",
-						"adminCreds":{
-							"userName": "[parameters('adminUserName')]",
-							"password": "PrivateSettingsRef:adminPassword"
-						},
-						"sqlServiceCreds":{
-							"userName": "[parameters('sqlServerServiceAccountUserName')]",
-							"password": "PrivateSettingsRef:sqlServerServiceAccountPassword"
-						}
-					}
-				},
-				"protectedSettings": {
-					"items": {
-						"adminPassword": "[parameters('adminPassword')]",
-						"sqlServerServiceAccountPassword": "[parameters('sqlServerServiceAccountPassword')]"
-					}
-				}
-			}
-		},
         {
             "type": "Microsoft.Compute/virtualMachines",
             "name": "[variables('compute_VM_sql2_Name')]",
@@ -782,55 +579,6 @@
                 }
             }
         },
-		{
-			"type": "Microsoft.Compute/virtualMachines/extensions",
-			"name": "[concat(variables('compute_VM_sql2_Name'),'/CreateCluster')]",
-			"apiVersion": "2015-05-01-preview",
-			"location": "[parameters('location')]",
-			"dependsOn":[
-				"[variables('deployments_sqlao_ExtensionId')]",
-				"Microsoft.Resources/deployments/UpdateSQL2Nic"
-			],
-			"properties": {
-				"publisher": "Microsoft.Powershell",
-				"type": "DSC",
-				"typeHandlerVersion": "2.1",
-				"settings": {
-					"modulesUrl": "[variables('deployments_cluster_ModulesURL')]",
-					"configurationFunction": "[variables('deployments_cluster_ConfigFunction')]",
-					"properties": {
-						"domainName": "[variables('deployments_domain_Name')]",
-						"clusterName":"[variables('deployments_cluster_name')]",
-						"sharePath":"[concat('\\\\',variables('compute_VM_sqlw_Name'),'\\',variables('deployments_fsw_sharePath'))]",
-						"nodes":["[variables('compute_VM_sql1_Id')]","[variables('compute_VM_sql2_Id')]"],
-						"sqlAlwaysOnEndpointName":"[variables('deployments_sqlao_EndpointName')]",
-						"sqlAlwaysOnAvailabilityGroupName":"[variables('deployments_cluster_AOGroupName')]",
-						"sqlAlwaysOnAvailabilityGroupListenerName":"[variables('deployments_cluster_AOListenerName')]",
-						"sqlAlwaysOnAvailabilityGroupListenerPort":1433,
-						"lbName":"[variables('network_LB_AOSQL_Name')]",
-						"lbAddress":"[variables('network_LB_AOSQL_StaticIPAddress')]",
-						"primaryReplica":"[variables('compute_VM_sql1_Id')]",
-						"secondaryReplica":"[variables('compute_VM_sql2_Id')]",
-						"databaseNames":"[parameters('databaseNames')]",
-                        "dnsServerName": "[variables('compute_VM_dc1_Name')]",
-						"adminCreds":{
-							"userName": "[parameters('adminUserName')]",
-							"password": "PrivateSettingsRef:adminPassword"
-						},
-						"sQLServiceCreds":{
-							"userName": "[parameters('sqlServerServiceAccountUserName')]",
-							"password": "PrivateSettingsRef:sqlServerServiceAccountPassword"
-						}
-					}
-				},
-				"protectedSettings": {
-					"items": {
-						"adminPassword": "[parameters('adminPassword')]",
-						"sqlServerServiceAccountPassword": "[parameters('sqlServerServiceAccountPassword')]"
-					}
-				}
-			}
-		},
         {
             "type": "Microsoft.Compute/virtualMachines",
             "name": "[variables('compute_VM_sqlw_Name')]",
@@ -888,37 +636,6 @@
                     ]
                 }
             }
-        },
-		{
-			"type": "Microsoft.Compute/virtualMachines/extensions",
-			"name": "[concat(variables('compute_VM_sqlw_Name'),'/CreateFileShareWitness')]",
-			"apiVersion": "2015-05-01-preview",
-			"location": "[parameters('location')]",
-			"dependsOn":[
-				"Microsoft.Resources/deployments/UpdateSQLWNic"
-			],
-			"properties": {
-				"publisher": "Microsoft.Powershell",
-				"type": "DSC",
-				"typeHandlerVersion": "2.1",
-				"settings": {
-					"modulesUrl": "[variables('deployments_fsw_TemplateURL')]",
-					"configurationFunction": "[variables('deployments_fsw_ConfigFunction')]",
-					"properties": {
-						"domainName": "[variables('deployments_domain_Name')]",
-						"sharePath":"[variables('deployments_fsw_SharePath')]",
-						"adminCreds":{
-							"userName": "[parameters('adminUserName')]",
-							"password": "PrivateSettingsRef:adminPassword"
-						}
-					}
-				},
-				"protectedSettings": {
-					"items": {
-						"adminPassword": "[parameters('adminPassword')]"
-					}
-				}
-			}
-		}
+        }
     ]
 }
