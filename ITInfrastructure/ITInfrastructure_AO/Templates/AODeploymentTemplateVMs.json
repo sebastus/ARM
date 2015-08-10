@@ -64,26 +64,26 @@
                 "description": "The location of resources that the script is dependent on such as linked templates and DSC modules"
             }
         },
-        "sqlServerServiceAccountUserName":{
-			"type":"string",
-			"metadata": {
-				"description": "The SQL Server Service account name"
-			},
-			"defaultValue":"sqlservice"
-		},
-		"sqlServerServiceAccountPassword":{
-			"type": "securestring",
-			"metadata": {
-				"description": "The SQL Server Service account password"
-			}
-		},
-		"dataBaseNames": {
-			"type":"array",
-			"metadata": {
-				"description": "An array of databases name, each database will be created and added to the availability group"
-			},
-			"defaultValue":["testdb1","testdb2"]
-		}
+        "sqlServerServiceAccountUserName": {
+            "type": "string",
+            "metadata": {
+                "description": "The SQL Server Service account name"
+            },
+            "defaultValue": "sqlservice"
+        },
+        "sqlServerServiceAccountPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The SQL Server Service account password"
+            }
+        },
+        "dataBaseNames": {
+            "type": "array",
+            "metadata": {
+                "description": "An array of databases name, each database will be created and added to the availability group"
+            },
+            "defaultValue": [ "testdb1", "testdb2" ]
+        }
     },
     "variables": {
         "compute_AvailabilitySet_AO_Name": "aoAvailabilitySet",
@@ -129,8 +129,8 @@
         "deployments_sqlao_EndpointName": "[concat(parameters('AO_FQDN_Prefix'),'-hadr')]",
         "deployments_sqlao_ExtensionId": "[concat(variables('compute_VM_sql1_Id'), '/extensions/sqlAOPrepare')]",
 
-		"deployments_cluster_ModulesURL":"[concat(parameters('assetLocation'),'/CreateFailoverCluster.ps1.zip')]",
-		"deployments_cluster_ConfigFunction":"CreateFailoverCluster.ps1\\CreateFailoverCluster",
+        "deployments_cluster_ModulesURL": "[concat(parameters('assetLocation'),'/CreateFailoverCluster.ps1.zip')]",
+        "deployments_cluster_ConfigFunction": "CreateFailoverCluster.ps1\\CreateFailoverCluster",
         "deployments_cluster_Name": "sqlAOCluster",
         "deployments_cluster_AOGroupName": "sqlAOGroup",
         "deployments_cluster_AOListenerName": "sqlAOListener",
@@ -169,6 +169,7 @@
         "network_LB_AOPub_NatRule_sqlw_PublicPort": "50103",
 
         "network_vNet_Id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+        "network_vnet_AddressSpace": "10.0.0.0/16",
 
         "network_NIC_dc1_PrivateIPAddress": "10.0.0.4",
         "network_NIC_dc2_PrivateIPAddress": "10.0.0.5",
@@ -185,19 +186,48 @@
         "network_NIC_sqlw_Id": "[resourceId('Microsoft.Network/networkInterfaces',variables('network_NIC_sqlw_Name'))]",
         "network_NIC_sqlw_PrivateIPAddress": "10.0.1.10",
 
+        "network_subnet_AD_name": "adSubnet",
+        "network_subnet_AD_AddressSpace": "10.0.0.0/24",
+        "network_subnet_AD_Id": "[concat(variables('network_vNet_Id'),'/subnets/',variables('network_subnet_AD_name'))]",
+
         "network_subnet_SQL_name": "sqlSubnet",
         "network_subnet_SQL_AddressSpace": "10.0.1.0/24",
         "network_subnet_SQL_Id": "[concat(variables('network_vNet_Id'),'/subnets/',variables('network_subnet_SQL_name'))]",
 
+        "network_subnets_array": [
+            {
+                "name": "[variables('network_subnet_AD_name')]",
+                "properties": {
+                    "addressPrefix": "[variables('network_subnet_AD_AddressSpace')]"
+                }
+            },
+            {
+                "name": "[variables('network_subnet_SQL_name')]",
+                "properties": {
+                    "addressPrefix": "[variables('network_subnet_SQL_AddressSpace')]"
+                }
+            }
+        ],
+
         "storage_Acct_1_Name": "[concat(parameters('newStorageAccountNamePrefix'), '0')]",
         "storage_Acct_1_Id": "[resourceId('Microsoft.Storage/storageAccounts',variables('storage_Acct_1_Name'))]",
-        "storage_Acct_2_Name": "[concat(parameters('newStorageAccountNamePrefix'), '1')]",
-        "storage_Acct_2_Id": "[resourceId('Microsoft.Storage/storageAccounts',variables('storage_Acct_2_Name'))]",
-        "storage_Acct_3_Name": "[concat(parameters('newStorageAccountNamePrefix'), '2')]",
-        "storage_Acct_3_Id": "[resourceId('Microsoft.Storage/storageAccounts',variables('storage_Acct_3_Name'))]",
         "storage_Acct_Container_Name": "vhds"
     },
     "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[parameters('vnetName')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('network_vnet_AddressSpace')]"
+                    ]
+                },
+                "subnets": "[variables('network_subnets_array')]"
+            }
+        },
         {
             "type": "Microsoft.Network/publicIPAddresses",
             "name": "[variables('network_PublicIPAddress_AO_Name')]",
@@ -542,7 +572,7 @@
                     "osDisk": {
                         "name": "osdisk",
                         "vhd": {
-                            "uri": "[concat('http://',variables('storage_Acct_2_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/',variables('compute_VM_sql2_Name'), '-osdisk.vhd')]"
+                            "uri": "[concat('http://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/',variables('compute_VM_sql2_Name'), '-osdisk.vhd')]"
                         },
                         "caching": "ReadWrite",
                         "createOption": "FromImage"
@@ -550,7 +580,7 @@
                     "dataDisks": [
                         {
                             "vhd": {
-                                "uri": "[concat('http://',variables('storage_Acct_2_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql2_Name'), '-data-1.vhd')]"
+                                "uri": "[concat('http://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql2_Name'), '-data-1.vhd')]"
                             },
                             "name": "[concat(variables('compute_VM_sql1_Name'),'-data-disk1')]",
                             "caching": "None",
@@ -560,7 +590,7 @@
                         },
                         {
                             "vhd": {
-                                "uri": "[concat('http://',variables('storage_Acct_2_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql2_Name'), '-log.vhd')]"
+                                "uri": "[concat('http://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql2_Name'), '-log.vhd')]"
                             },
                             "name": "[concat(variables('compute_VM_sql1_Name'),'-log-disk1')]",
                             "caching": "None",
@@ -610,7 +640,7 @@
                     "osDisk": {
                         "name": "osdisk",
                         "vhd": {
-                            "uri": "[concat('http://',variables('storage_Acct_3_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/',variables('compute_VM_sqlw_Name'), '-osdisk.vhd')]"
+                            "uri": "[concat('http://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/',variables('compute_VM_sqlw_Name'), '-osdisk.vhd')]"
                         },
                         "caching": "ReadWrite",
                         "createOption": "FromImage"
@@ -618,7 +648,7 @@
                     "dataDisks": [
                         {
                             "vhd": {
-                                "uri": "[concat('http://',variables('storage_Acct_3_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sqlw_Name'), '-data-1.vhd')]"
+                                "uri": "[concat('http://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sqlw_Name'), '-data-1.vhd')]"
                             },
                             "name": "[concat(variables('compute_VM_sql1_Name'),'-data-disk1')]",
                             "caching": "None",

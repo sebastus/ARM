@@ -25,13 +25,13 @@
   <Import Condition=" Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Deployment\1.1\DeploymentProject.targets') " Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Deployment\1.1\DeploymentProject.targets" />
   <!-- vertag<:>end -->
   <ItemGroup>
-    <Folder Include="Scripts\" />
     <Folder Include="Tools\" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Deployment.targets">
       <Visible>False</Visible>
     </None>
+    <Content Include="Scripts\Deploy-AzureResourceGroupVMs.ps1" />
     <Content Include="Scripts\Deploy-AzureResourceGroup.ps1" />
     <Content Include="Templates\AODeploymentTemplateVMs.json" />
     <Content Include="Templates\AODeploymentTemplate.json" />
