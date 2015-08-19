@@ -3,13 +3,13 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "StorageAccountNamePrefix": {
-            "value": "golivestorageb"
+            "value": "golivestoragec"
         },
         "vnetName": {
             "value": "itvnet"
         },
-        "FG1_FQDN_Prefix": {
-            "value": "fortinetfg1"
+        "FG_FQDN_Prefix": {
+            "value": "fortinetlb"
         },
         "adminUsername": {
             "value": "greg"
