@@ -53,19 +53,33 @@
         }
     },
     "variables": {
+        "compute_AvailabilitySet_FG_Name": "fgAvailabilitySet",
+        "compute_AvailabilitySet_FG_Id": "[resourceId('Microsoft.Compute/availabilitySets', variables('compute_AvailabilitySet_FG_Name'))]",
+
         "compute_VM_fg_ImageURI": "https://golivearmstorage.blob.core.windows.net/vhds/fortios-4968.vhd",
 
-        "compute_VM_fg1_Name": "fg1",
+        "compute_VM_fg1_Name": "fgtwo1",
         "compute_VM_fg1_Id": "[resourceId('Microsoft.Compute/virtualMachines',variables('compute_VM_fg1_Name'))]",
         "compute_VM_fg1_Size": "Standard_A3",
-        "compute_VM_fg1_VHD_URI": "[concat('https://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/vhds/',variables('compute_VM_fg1_Name'),'-osdisk.vhd')]",
+        "compute_VM_fg1_VHD_URI": "[concat('https://','golivearmstorage','.blob.core.windows.net/vhds/',variables('compute_VM_fg1_Name'),'-osdisk.vhd')]",
         "compute_VM_fg1_Image_URI": "[variables('compute_VM_fg_ImageURI')]",
 
-        "compute_VM_fg2_Name": "fg2",
+        "compute_VM_fg2_Name": "fgtwo2",
         "compute_VM_fg2_Id": "[resourceId('Microsoft.Compute/virtualMachines',variables('compute_VM_fg2_Name'))]",
         "compute_VM_fg2_Size": "Standard_A3",
-        "compute_VM_fg2_VHD_URI": "[concat('https://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/vhds/',variables('compute_VM_fg2_Name'),'-osdisk.vhd')]",
+        "compute_VM_fg2_VHD_URI": "[concat('https://','golivearmstorage','.blob.core.windows.net/vhds/',variables('compute_VM_fg2_Name'),'-osdisk.vhd')]",
         "compute_VM_fg2_Image_URI": "[variables('compute_VM_fg_ImageURI')]",
+
+        "network_LB_Internal_Name": "internalLB",
+        "network_LB_Internal_Id": "[resourceId('Microsoft.Network/loadBalancers',variables('network_LB_Internal_Name'))]",
+        "network_LB_Internal_FEName": "internalLBFE",
+        "network_LB_Internal_FEId": "[concat(variables('network_LB_Internal_Id'),'/frontendIPConfigurations/',variables('network_LB_Internal_FEName'))]",
+        "network_LB_Internal_BEName": "internalLBBE",
+        "network_LB_Internal_BEId": "[concat(variables('network_LB_Internal_Id'),'/backendAddressPools/',variables('network_LB_Internal_BEName'))]",
+        "network_LB_Internal_StaticIPAddress": "10.0.1.100",
+        "network_LB_Internal_LBRulesName": "internalLBRules",
+        "network_LB_Internal_ProbeName": "internalLBProbe",
+        "network_LB_Internal_ProbeId": "[concat(variables('network_LB_Internal_Id'),'/probes/',variables('network_LB_Internal_ProbeName'))]",
 
         "network_LB_Public_Name": "publicLB",
         "network_LB_Public_Id": "[resourceId('Microsoft.Network/loadBalancers',variables('network_LB_Public_Name'))]",
@@ -141,6 +155,12 @@
         "storage_Acct_1_Id": "[resourceId('Microsoft.Storage/storageAccounts',variables('storage_Acct_1_Name'))]"
     },
     "resources": [
+        {
+            "type": "Microsoft.Compute/availabilitySets",
+            "name": "[variables('compute_AvailabilitySet_FG_Name')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[resourceGroup().location]"
+        },
         {
             "type": "Microsoft.Storage/storageAccounts",
             "name": "[variables('storage_Acct_1_Name')]",
@@ -229,6 +249,62 @@
             }
         },
         {
+            "type": "Microsoft.Network/loadBalancers",
+            "name": "[variables('network_LB_Internal_Name')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "[variables('network_LB_Internal_FEName')]",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[variables('network_LB_Internal_StaticIPAddress')]",
+                            "subnet": {
+                                "id": "[variables('network_subnet_FG_Priv_Id')]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "[variables('network_LB_Internal_BEName')]"
+                    }
+                ],
+                "loadBalancingRules": [
+                    {
+                        "name": "[variables('network_LB_Internal_LBRulesName')]",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[variables('network_LB_Internal_FEId')]"
+                            },
+                            "backendAddressPool": {
+                                "id": "[variables('network_LB_Internal_BEId')]"
+                            },
+                            "probe": {
+                                "id": "[variables('network_LB_Internal_ProbeId')]"
+                            },
+                            "protocol": "tcp",
+                            "frontendPort": 443,
+                            "backendPort": 443,
+                            "enableFloatingIP": true
+                        }
+                    }
+                ],
+                "probes": [
+                    {
+                        "name": "[variables('network_LB_Internal_ProbeName')]",
+                        "properties": {
+                            "protocol": "tcp",
+                            "port": 443,
+                            "intervalInSeconds": "5",
+                            "numberOfProbes": "2"
+                        }
+                    }
+                ]
+            }
+        },
+        {
             "type": "Microsoft.Network/networkInterfaces",
             "name": "[variables('network_NIC_fg11_Name')]",
             "apiVersion": "2015-05-01-preview",
@@ -279,7 +355,12 @@
                             "privateIPAddress": "[variables('network_NIC_fg12_PrivateIPAddress')]",
                             "subnet": {
                                 "id": "[variables('network_subnet_FG_Priv_Id')]"
-                            }
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[variables('network_LB_Internal_BEId')]"
+                                }
+                            ]
                         }
                     }
                 ]
@@ -336,12 +417,17 @@
                             "privateIPAddress": "[variables('network_NIC_fg22_PrivateIPAddress')]",
                             "subnet": {
                                 "id": "[variables('network_subnet_FG_Priv_Id')]"
-                            }
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[variables('network_LB_Internal_BEId')]"
+                                }
+                            ]
                         }
                     }
                 ]
             }
-        },        
+        },
         {
             "type": "Microsoft.Compute/virtualMachines",
             "name": "[variables('compute_VM_fg1_Name')]",
@@ -355,6 +441,9 @@
                 "hardwareProfile": {
                     "vmSize": "[variables('compute_VM_fg1_Size')]"
                 },
+                "availabilitySet": {
+                    "id": "[variables('compute_AvailabilitySet_FG_Id')]"
+                },
                 "osProfile": {
                     "computername": "[variables('compute_VM_fg1_Name')]",
                     "adminUsername": "[parameters('adminUsername')]",
@@ -367,7 +456,7 @@
                         "caching": "ReadWrite",
                         "createOption": "FromImage",
                         "image": {
-                            "uri": "[variables('compute_VM_fg1_Image_URI')]" 
+                            "uri": "[variables('compute_VM_fg1_Image_URI')]"
                         },
                         "vhd": {
                             "uri": "[variables('compute_VM_fg1_VHD_URI')]"
@@ -377,7 +466,16 @@
                 "networkProfile": {
                     "networkInterfaces": [
                         {
+                            "properties": {
+                                "primary": true
+                            },
                             "id": "[variables('network_NIC_fg11_Id')]"
+                        },
+                        {
+                            "properties": {
+                                "primary": false
+                            },
+                            "id": "[variables('network_NIC_fg12_Id')]"
                         }
                     ]
                 }
@@ -395,6 +493,9 @@
             "properties": {
                 "hardwareProfile": {
                     "vmSize": "[variables('compute_VM_fg2_Size')]"
+                },
+                "availabilitySet": {
+                    "id": "[variables('compute_AvailabilitySet_FG_Id')]"
                 },
                 "osProfile": {
                     "computername": "[variables('compute_VM_fg2_Name')]",
@@ -418,11 +519,20 @@
                 "networkProfile": {
                     "networkInterfaces": [
                         {
+                            "properties": {
+                                "primary": true
+                            },
                             "id": "[variables('network_NIC_fg21_Id')]"
+                        },
+                        {
+                            "properties": {
+                                "primary": false
+                            },
+                            "id": "[variables('network_NIC_fg22_Id')]"
                         }
                     ]
                 }
             }
-        }    
+        }
     ]
 }

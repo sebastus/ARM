@@ -1,8 +1,8 @@
 ﻿#Requires -Version 3.0
 
 Param(
-  [string] [Parameter(Mandatory=$true)] $ResourceGroupLocation,
-  [string] $ResourceGroupName = 'fortinetOne.Solution',
+  [string] $ResourceGroupLocation = 'West US',
+  [string] $ResourceGroupName = 'fortinetTwo',
   [switch] $UploadArtifacts,
   [string] $StorageAccountName, 
   [string] $StorageContainerName = $ResourceGroupName.ToLowerInvariant() + '-stageartifacts',

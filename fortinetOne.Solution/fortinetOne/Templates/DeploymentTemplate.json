@@ -305,7 +305,16 @@
                 "networkProfile": {
                     "networkInterfaces": [
                         {
+                            "properties": { 
+                                "primary": true 
+                            }, 
                             "id": "[variables('network_NIC_fg11_Id')]"
+                        },
+                        {
+                            "properties": { 
+                                "primary": false 
+                            }, 
+                            "id": "[variables('network_NIC_fg12_Id')]"
                         }
                     ]
                 }
