@@ -8,8 +8,11 @@
         "vnetName": {
             "value": "itvnet"
         },
-        "FG_FQDN_Prefix": {
-            "value": "fortinettwolb"
+        "FG1_FQDN_Prefix": {
+            "value": "fortinettwo1"
+        },
+        "FG2_FQDN_Prefix": {
+            "value": "fortinettwo2"
         },
         "adminUsername": {
             "value": "greg"
