@@ -27,16 +27,10 @@
                 "description": "Name of the Azure virtual network."
             }
         },
-        "FG1_FQDN_Prefix": {
+        "FG_FQDN_Prefix": {
             "type": "string",
             "metadata": {
-                "description": "Prefix of the domain name of VM FG1, e.g. <something>.location.cloudapp.net"
-            }
-        },
-        "FG2_FQDN_Prefix": {
-            "type": "string",
-            "metadata": {
-                "description": "Prefix of the domain name of VM FG2, e.g. <something>.location.cloudapp.net"
+                "description": "Prefix of the domain name of public IP connected to public LB, e.g. <something>.<location>.cloudapp.azure.com"
             }
         },
         "adminUsername": {
@@ -75,17 +69,21 @@
         "compute_VM_fg2_Size": "Standard_A3",
         "compute_VM_fg2_VHD_URI": "[concat('https://','golivearmstorage','.blob.core.windows.net/vhds/',variables('compute_VM_fg2_Name'),'-osdisk.vhd')]",
         "compute_VM_fg2_Image_URI": "[variables('compute_VM_fg_ImageURI')]",
+        
+        "network_LB_Public_Name": "publicLB",
+        "network_LB_Public_Id": "[resourceId('Microsoft.Network/loadBalancers',variables('network_LB_Public_Name'))]",
+        "network_LB_Public_FEName": "publicLBFE",
+        "network_LB_Public_FEId": "[concat(variables('network_LB_Public_Id'),'/frontendIPConfigurations/',variables('network_LB_Public_FEName'))]",
+        "network_LB_Public_BEName": "publicLBBE",
+        "network_LB_Public_BEId": "[concat(variables('network_LB_Public_Id'),'/backendAddressPools/',variables('network_LB_Public_BEName'))]",
 
-        "network_LB_Internal_Name": "internalLB",
-        "network_LB_Internal_Id": "[resourceId('Microsoft.Network/loadBalancers',variables('network_LB_Internal_Name'))]",
-        "network_LB_Internal_FEName": "internalLBFE",
-        "network_LB_Internal_FEId": "[concat(variables('network_LB_Internal_Id'),'/frontendIPConfigurations/',variables('network_LB_Internal_FEName'))]",
-        "network_LB_Internal_BEName": "internalLBBE",
-        "network_LB_Internal_BEId": "[concat(variables('network_LB_Internal_Id'),'/backendAddressPools/',variables('network_LB_Internal_BEName'))]",
-        "network_LB_Internal_StaticIPAddress": "10.0.1.100",
-        "network_LB_Internal_LBRulesName": "internalLBRules",
-        "network_LB_Internal_ProbeName": "internalLBProbe",
-        "network_LB_Internal_ProbeId": "[concat(variables('network_LB_Internal_Id'),'/probes/',variables('network_LB_Internal_ProbeName'))]",
+        "network_LB_Public_NatRule_SSH_fg1_Name": "fg1SSHNat",
+        "network_LB_Public_NatRule_SSH_fg1_Id": "[concat(variables('network_LB_Public_Id'),'/inboundNatRules/',variables('network_LB_Public_NatRule_SSH_fg1_Name'))]",
+        "network_LB_Public_NatRule_SSH_fg1_PublicPort": "50101",
+
+        "network_LB_Public_NatRule_SSH_fg2_Name": "fg2SSHNat",
+        "network_LB_Public_NatRule_SSH_fg2_Id": "[concat(variables('network_LB_Public_Id'),'/inboundNatRules/',variables('network_LB_Public_NatRule_SSH_fg2_Name'))]",
+        "network_LB_Public_NatRule_SSH_fg2_PublicPort": "50102",
 
         "network_NIC_fg11_Name": "fg1NIC1",
         "network_NIC_fg11_Id": "[resourceId('Microsoft.Network/networkInterfaces',variables('network_NIC_fg11_Name'))]",
@@ -103,11 +101,8 @@
         "network_NIC_fg22_Id": "[resourceId('Microsoft.Network/networkInterfaces',variables('network_NIC_fg22_Name'))]",
         "network_NIC_fg22_PrivateIPAddress": "10.0.1.5",
 
-        "network_PublicIPAddress_FG1_Name": "fg1PublicIP",
-        "network_PublicIPAddress_FG1_ResourceId": "[resourceId('Microsoft.Network/publicIPAddresses',variables('network_PublicIPAddress_FG1_Name'))]",
-
-        "network_PublicIPAddress_FG2_Name": "fg2PublicIP",
-        "network_PublicIPAddress_FG2_ResourceId": "[resourceId('Microsoft.Network/publicIPAddresses',variables('network_PublicIPAddress_FG2_Name'))]",
+        "network_PublicIPAddress_LB_Name": "LBPublicIP",
+        "network_PublicIPAddress_LB_ResourceId": "[resourceId('Microsoft.Network/publicIPAddresses',variables('network_PublicIPAddress_LB_Name'))]",
 
         "network_vNet_Id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
         "network_vnet_AddressSpace": "10.0.0.0/16",
@@ -120,9 +115,9 @@
         "network_subnet_FG_Priv_AddressSpace": "10.0.1.0/24",
         "network_subnet_FG_Priv_Id": "[concat(variables('network_vNet_Id'),'/subnets/',variables('network_subnet_FG_Priv_name'))]",
 
-        "network_subnet_solution1_name": "subnetSolution1",
-        "network_subnet_solution1_AddressSpace": "10.0.2.0/24",
-        "network_subnet_solution1_Id": "[concat(variables('network_vNet_Id'),'/subnets/',variables('network_subnet_solution1_name'))]",
+        "network_subnet_1_name": "subnet1",
+        "network_subnet_1_AddressSpace": "10.0.2.0/24",
+        "network_subnet_1_Id": "[concat(variables('network_vNet_Id'),'/subnets/',variables('network_subnet_1_name'))]",
 
         "network_subnets_array": [
             {
@@ -138,9 +133,9 @@
                 }
             },
             {
-                "name": "[variables('network_subnet_solution1_name')]",
+                "name": "[variables('network_subnet_1_name')]",
                 "properties": {
-                    "addressPrefix": "[variables('network_subnet_solution1_AddressSpace')]"
+                    "addressPrefix": "[variables('network_subnet_1_AddressSpace')]"
                 }
             }
         ],
@@ -180,84 +175,68 @@
         },
         {
             "type": "Microsoft.Network/publicIPAddresses",
-            "name": "[variables('network_PublicIPAddress_FG1_Name')]",
+            "name": "[variables('network_PublicIPAddress_LB_Name')]",
             "apiVersion": "2015-05-01-preview",
             "location": "[resourceGroup().location]",
             "properties": {
                 "publicIPAllocationMethod": "Dynamic",
                 "dnsSettings": {
-                    "domainNameLabel": "[parameters('FG1_FQDN_Prefix')]"
-                }
-            }
-        },
-        {
-            "type": "Microsoft.Network/publicIPAddresses",
-            "name": "[variables('network_PublicIPAddress_FG2_Name')]",
-            "apiVersion": "2015-05-01-preview",
-            "location": "[resourceGroup().location]",
-            "properties": {
-                "publicIPAllocationMethod": "Dynamic",
-                "dnsSettings": {
-                    "domainNameLabel": "[parameters('FG2_FQDN_Prefix')]"
+                    "domainNameLabel": "[parameters('FG_FQDN_Prefix')]"
                 }
             }
         },
         {
             "type": "Microsoft.Network/loadBalancers",
-            "name": "[variables('network_LB_Internal_Name')]",
+            "name": "[variables('network_LB_Public_Name')]",
             "apiVersion": "2015-05-01-preview",
             "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[variables('network_PublicIPAddress_LB_ResourceId')]"
+            ],
             "properties": {
                 "frontendIPConfigurations": [
                     {
-                        "name": "[variables('network_LB_Internal_FEName')]",
+                        "name": "[variables('network_LB_Public_FEName')]",
                         "properties": {
-                            "privateIPAllocationMethod": "Static",
-                            "privateIPAddress": "[variables('network_LB_Internal_StaticIPAddress')]",
-                            "subnet": {
-                                "id": "[variables('network_subnet_FG_Priv_Id')]"
+                            "publicIPAddress": {
+                                "id": "[variables('network_PublicIPAddress_LB_ResourceId')]"
                             }
                         }
                     }
                 ],
                 "backendAddressPools": [
                     {
-                        "name": "[variables('network_LB_Internal_BEName')]"
+                        "name": "[variables('network_LB_Public_BEName')]"
                     }
                 ],
-                "loadBalancingRules": [
+                "inboundNatRules": [
                     {
-                        "name": "[variables('network_LB_Internal_LBRulesName')]",
+                        "name": "[variables('network_LB_Public_NatRule_SSH_fg1_Name')]",
                         "properties": {
                             "frontendIPConfiguration": {
-                                "id": "[variables('network_LB_Internal_FEId')]"
-                            },
-                            "backendAddressPool": {
-                                "id": "[variables('network_LB_Internal_BEId')]"
-                            },
-                            "probe": {
-                                "id": "[variables('network_LB_Internal_ProbeId')]"
+                                "id": "[variables('network_LB_Public_FEId')]"
                             },
                             "protocol": "tcp",
-                            "frontendPort": 443,
-                            "backendPort": 443,
-                            "enableFloatingIP": true
+                            "frontendPort": "[variables('network_LB_Public_NatRule_SSH_fg1_PublicPort')]",
+                            "backendPort": 22,
+                            "enableFloatingIP": false
                         }
-                    }
-                ],
-                "probes": [
+                    },
                     {
-                        "name": "[variables('network_LB_Internal_ProbeName')]",
+                        "name": "[variables('network_LB_Public_NatRule_SSH_fg2_Name')]",
                         "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[variables('network_LB_Public_FEId')]"
+                            },
                             "protocol": "tcp",
-                            "port": 443,
-                            "intervalInSeconds": "5",
-                            "numberOfProbes": "2"
+                            "frontendPort": "[variables('network_LB_Public_NatRule_SSH_fg2_PublicPort')]",
+                            "backendPort": 22,
+                            "enableFloatingIP": false
                         }
                     }
                 ]
             }
-        },
+        },       
         {
             "type": "Microsoft.Network/networkInterfaces",
             "name": "[variables('network_NIC_fg11_Name')]",
@@ -265,20 +244,28 @@
             "location": "[resourceGroup().location]",
             "dependsOn": [
                 "[variables('network_vNet_Id')]",
-                "[variables('network_PublicIPAddress_FG1_ResourceId')]"
+                "[variables('network_LB_Public_Name')]"
             ],
             "properties": {
                 "ipConfigurations": [
                     {
-                        "name": "publicIP1",
+                        "name": "privateIP1",
                         "properties": {
-                            "privateIPAllocationMethod": "Dynamic",
-                            "publicIPAddress": {
-                                "id": "[variables('network_PublicIPAddress_FG1_ResourceId')]"
-                            },
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[variables('network_NIC_fg11_PrivateIPAddress')]",
                             "subnet": {
                                 "id": "[variables('network_subnet_FG_Pub_Id')]"
-                            }
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[variables('network_LB_Public_BEId')]"
+                                }
+                            ],
+                            "loadBalancerInboundNatRules": [
+                                {
+                                    "id": "[variables('network_LB_Public_NatRule_SSH_fg1_Id')]"
+                                }
+                            ]
                         }
                     }
                 ]
@@ -301,12 +288,7 @@
                             "privateIPAddress": "[variables('network_NIC_fg12_PrivateIPAddress')]",
                             "subnet": {
                                 "id": "[variables('network_subnet_FG_Priv_Id')]"
-                            },
-                            "loadBalancerBackendAddressPools": [
-                                {
-                                    "id": "[variables('network_LB_Internal_BEId')]"
-                                }
-                            ]
+                            }
                         }
                     }
                 ]
@@ -319,20 +301,28 @@
             "location": "[resourceGroup().location]",
             "dependsOn": [
                 "[variables('network_vNet_Id')]",
-                "[variables('network_PublicIPAddress_FG2_ResourceId')]"
+                "[variables('network_LB_Public_Name')]"
             ],
             "properties": {
                 "ipConfigurations": [
                     {
-                        "name": "publicIP1",
+                        "name": "privateIP1",
                         "properties": {
-                            "privateIPAllocationMethod": "Dynamic",
-                            "publicIPAddress": {
-                                "id": "[variables('network_PublicIPAddress_FG2_ResourceId')]"
-                            },
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[variables('network_NIC_fg21_PrivateIPAddress')]",
                             "subnet": {
                                 "id": "[variables('network_subnet_FG_Pub_Id')]"
-                            }
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[variables('network_LB_Public_BEId')]"
+                                }
+                            ],
+                            "loadBalancerInboundNatRules": [
+                                {
+                                    "id": "[variables('network_LB_Public_NatRule_SSH_fg2_Id')]"
+                                }
+                            ]
                         }
                     }
                 ]
@@ -355,12 +345,7 @@
                             "privateIPAddress": "[variables('network_NIC_fg22_PrivateIPAddress')]",
                             "subnet": {
                                 "id": "[variables('network_subnet_FG_Priv_Id')]"
-                            },
-                            "loadBalancerBackendAddressPools": [
-                                {
-                                    "id": "[variables('network_LB_Internal_BEId')]"
-                                }
-                            ]
+                            }
                         }
                     }
                 ]
@@ -405,13 +390,13 @@
                     "networkInterfaces": [
                         {
                             "properties": {
-                                "primary": false
+                                "primary": true
                             },
                             "id": "[variables('network_NIC_fg11_Id')]"
                         },
                         {
                             "properties": {
-                                "primary": true
+                                "primary": false
                             },
                             "id": "[variables('network_NIC_fg12_Id')]"
                         }
@@ -458,13 +443,13 @@
                     "networkInterfaces": [
                         {
                             "properties": {
-                                "primary": false
+                                "primary": true
                             },
                             "id": "[variables('network_NIC_fg21_Id')]"
                         },
                         {
                             "properties": {
-                                "primary": true
+                                "primary": false
                             },
                             "id": "[variables('network_NIC_fg22_Id')]"
                         }
