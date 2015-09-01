@@ -42,6 +42,10 @@
         "compute_VM_vm_ImageSKU": "2012-R2-Datacenter",
         "compute_VM_vm_DataDiskSize": 128,
 
+        "compute_EXT_vm_Extension_Name": "[concat(variables('compute_VM_vm_Name'),'/InstallFWRule')]",
+        "compute_EXT_vm_ModulesURL": "[concat('https://', variables('storage_Acct_1_Name'), '.blob.core.windows.net/public/InstallFWRule.ps1.zip')]",
+        "compute_EXT_vm_ConfigFunction": "InstallFWRule.ps1\\InstallFWRule",
+
         "network_vNet_Id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
         "network_vnet_AddressSpace": "10.0.0.0/16",
 
@@ -171,6 +175,24 @@
                             "id": "[variables('network_NIC_vm_Id')]"
                         }
                     ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[variables('compute_EXT_vm_Extension_Name')]",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "dependsOn":[
+                "[variables('compute_VM_vm_Id')]"
+             ],
+            "properties": {
+                "publisher": "Microsoft.Powershell",
+                "type": "DSC",
+                "typeHandlerVersion": "2.1",
+                "settings": {
+                    "modulesUrl": "[variables('compute_EXT_vm_ModulesURL')]",
+                    "configurationFunction": "[variables('compute_EXT_vm_ConfigFunction')]"            
                 }
             }
         }
