@@ -3,7 +3,7 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "newStorageAccountNamePrefix": {
-            "value": "golivedc1storagea"
+            "value": "golivestorageb"
         },
         "location": {
             "value": "West US"

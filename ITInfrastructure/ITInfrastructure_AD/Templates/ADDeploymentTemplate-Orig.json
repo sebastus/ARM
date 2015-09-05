@@ -37,7 +37,7 @@
         "AD_FQDN_Prefix": {
             "type": "string",
             "metadata": {
-                "description": "Prefix of the domain name of the AD VMs, e.g. <something>.cloudapp.net"
+                "description": "Prefix of the domain name of the AD VMs, e.g. <something>.<location>.cloudapp.azure.com"
             }
         },
         "vnetName": {
