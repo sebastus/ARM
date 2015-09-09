@@ -177,6 +177,25 @@
                     ]
                 }
             }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[variables('compute_EXT_vm_Extension_Name')]",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "dependsOn":[
+                "[variables('compute_VM_vm_Id')]"
+             ],
+            "properties": {
+                "publisher": "Microsoft.Powershell",
+                "type": "DSC",
+                "typeHandlerVersion": "2.1",
+                "settings": {
+                    "modulesUrl": "[variables('compute_EXT_vm_ModulesURL')]",
+                    "configurationFunction": "[variables('compute_EXT_vm_ConfigFunction')]"            
+                }
+            }
         }
+
     ]
 }
