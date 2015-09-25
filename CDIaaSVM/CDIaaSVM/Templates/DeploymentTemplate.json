@@ -54,7 +54,7 @@
         "compute_EXT_vm_RebootNodeIfNeeded": true,
         "compute_EXT_vm_ActionAfterReboot": "ContinueConfiguration",
         "compute_EXT_vm_AllowModuleOverwrite": false,
-        "compute_EXT_vm_ConfigurationMode": "ApplyAndMonitor",
+        "compute_EXT_vm_ConfigurationMode": "ApplyAndAutoCorrect",
 
         "network_vNet_Id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
         "network_vnet_AddressSpace": "10.0.0.0/16",
