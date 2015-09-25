@@ -1,0 +1,182 @@
+﻿{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vm_FQDN_Prefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Prefix of the domain name of the AD VMs, e.g. <something>.<location>.cloudapp.azure.com"
+            }
+        },
+        "newStorageAccountNamePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The prefix of the new storage account created to store the VMs disks, three different storage accounts will be created using this string as a prefix for the name"
+            }
+        },
+        "adminUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the Administrator of the new VMs and Domain"
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The password for the Administrator account of the new VMs and Domain"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the Azure virtual network."
+            }
+        }
+    },
+    "variables": {
+        "compute_VM_vm_Name": "vm",
+        "compute_VM_vm_Id": "[resourceId('Microsoft.Compute/virtualMachines',variables('compute_VM_vm_Name'))]",
+        "compute_VM_vm_Size": "Standard_D2",
+        "compute_VM_vm_ImagePublisher": "MicrosoftWindowsServer",
+        "compute_VM_vm_ImageOffer": "WindowsServer",
+        "compute_VM_vm_ImageSKU": "2012-R2-Datacenter",
+        "compute_VM_vm_DataDiskSize": 128,
+
+        "compute_EXT_vm_Extension_Name": "[concat(variables('compute_VM_vm_Name'),'/InstallFWRule')]",
+        "compute_EXT_vm_ModulesURL": "[concat('https://', variables('storage_Acct_1_Name'), '.blob.core.windows.net/public/InstallFWRule.ps1.zip')]",
+        "compute_EXT_vm_ConfigFunction": "InstallFWRule.ps1\\InstallFWRule",
+
+        "network_vNet_Id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+        "network_vnet_AddressSpace": "10.0.0.0/16",
+
+        "network_NIC_vm_Name": "vmNIC",
+        "network_NIC_vm_Id": "[resourceId('Microsoft.Network/networkInterfaces',variables('network_NIC_vm_Name'))]",
+
+        "network_PublicIPAddress_vm_Name": "vmPublicIP",
+        "network_PublicIPAddress_vm_ResourceId": "[resourceId('Microsoft.Network/publicIPAddresses',variables('network_PublicIPAddress_vm_Name'))]",
+
+        "network_subnet_1_name": "Subnet1",
+        "network_subnet_1_AddressSpace": "10.0.0.0/24",
+        "network_subnet_1_Id": "[concat(variables('network_vNet_Id'),'/subnets/',variables('network_subnet_1_name'))]",
+
+        "network_subnets_array": [
+            {
+                "name": "[variables('network_subnet_1_name')]",
+                "properties": {
+                    "addressPrefix": "[variables('network_subnet_1_AddressSpace')]"
+                }
+            }
+        ],
+
+        "storage_Acct_1_Name": "[concat(parameters('newStorageAccountNamePrefix'), '0')]",
+        "storage_Acct_1_Id": "[resourceId('Microsoft.Storage/storageAccounts',variables('storage_Acct_1_Name'))]",
+        "storage_Acct_Container_Name": "vhds"
+
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[parameters('vnetName')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('network_vnet_AddressSpace')]"
+                    ]
+                },
+                "subnets": "[variables('network_subnets_array')]"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[variables('storage_Acct_1_Name')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "accountType": "Standard_LRS"
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('network_PublicIPAddress_vm_Name')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('vm_FQDN_Prefix')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('network_NIC_vm_Name')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[variables('network_vNet_Id')]",
+                "[variables('network_PublicIPAddress_vm_ResourceId')]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "privateIP1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[variables('network_PublicIPAddress_vm_ResourceId')]"
+                            },
+                            "subnet": {
+                                "id": "[variables('network_subnet_1_Id')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('compute_VM_vm_Name')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[variables('storage_Acct_1_Id')]",
+                "[variables('network_NIC_vm_Id')]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables('compute_VM_vm_Size')]"
+                },
+                "osProfile": {
+                    "computerName": "[variables('compute_VM_vm_Name')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('compute_VM_vm_ImagePublisher')]",
+                        "offer": "[variables('compute_VM_vm_ImageOffer')]",
+                        "sku": "[variables('compute_VM_vm_ImageSKU')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "osdisk",
+                        "vhd": {
+                            "uri": "[concat('http://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/',variables('compute_VM_vm_Name'),'-osdisk.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[variables('network_NIC_vm_Id')]"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}
