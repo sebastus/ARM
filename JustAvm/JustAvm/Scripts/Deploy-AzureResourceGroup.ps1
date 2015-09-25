@@ -6,7 +6,7 @@ Param(
   [switch] $UploadArtifacts,
   [string] $StorageAccountName, 
   [string] $StorageContainerName = $ResourceGroupName.ToLowerInvariant() + '-stageartifacts',
-  [string] $TemplateFile = '..\Templates\DeploymentTemplate.json',
+  [string] $TemplateFile = '..\Templates\DeploymentTemplateWithExtension.json',
   [string] $TemplateParametersFile = '..\Templates\DeploymentTemplate.param.dev.json',
   [string] $ArtifactStagingDirectory = '..\bin\Debug\Artifacts',
   [string] $AzCopyPath = '..\Tools\AzCopy.exe'
