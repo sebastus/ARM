@@ -3,12 +3,9 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "newStorageAccountNamePrefix": {
-            "value": "golivestorageb"
-        },
-        "location": {
-            "value": "West US"
-        },
-        "AO_FQDN_Prefix": {
+            "value": "golivestoragec"
+        },        
+        "alwaysOnDNSPrefix": {
             "value": "goliveao"
         },
         "vnetName": {

@@ -21,20 +21,7 @@
             },
             "defaultValue": "Standard_LRS"
         },
-        "location": {
-            "type": "string",
-            "allowedValues": [
-                "West US",
-                "East US",
-                "West Europe",
-                "East Asia",
-                "Southeast Asia"
-            ],
-            "metadata": {
-                "description": "The region to deploy the resources into"
-            }
-        },
-        "AO_FQDN_Prefix": {
+        "alwaysOnDNSPrefix": {
             "type": "string",
             "metadata": {
                 "description": "Prefix of the domain name of the AO VMs, e.g. <something>.<location>.cloudapp.azure.com"
@@ -64,32 +51,40 @@
                 "description": "The location of resources that the script is dependent on such as linked templates and DSC modules"
             }
         },
-        "sqlServerServiceAccountUserName":{
-			"type":"string",
-			"metadata": {
-				"description": "The SQL Server Service account name"
-			},
-			"defaultValue":"sqlservice"
-		},
-		"sqlServerServiceAccountPassword":{
-			"type": "securestring",
-			"metadata": {
-				"description": "The SQL Server Service account password"
-			}
-		},
-		"dataBaseNames": {
-			"type":"array",
-			"metadata": {
-				"description": "An array of databases name, each database will be created and added to the availability group"
-			},
-			"defaultValue":["testdb1","testdb2"]
-		}
+        "sqlServerServiceAccountUserName": {
+            "type": "string",
+            "metadata": {
+                "description": "The SQL Server Service account name"
+            },
+            "defaultValue": "sqlservice"
+        },
+        "sqlServerServiceAccountPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The SQL Server Service account password"
+            }
+        },
+        "dataBaseNames": {
+            "type": "array",
+            "metadata": {
+                "description": "An array of databases names, each database will be created and added to the availability group"
+            },
+            "defaultValue": [ "testdb1", "testdb2" ]
+        }
     },
     "variables": {
+
+        "active_directory_documentation" : "these seven variables make up the linkage to the template that creates the AD machines and lights up the domain.",
+        "compute_VM_dc1_Name": "adDC1",
+        "network_NIC_dc1_PrivateIPAddress": "10.0.0.4",
+        "network_NIC_dc2_PrivateIPAddress": "10.0.0.5",
+        "deployments_domain_Name": "goliveIT.com",
+        "network_subnet_SQL_name": "sqlSubnet",
+        "network_subnet_SQL_AddressSpace": "10.0.1.0/24",
+        "network_subnet_SQL_Id": "[concat(variables('network_vNet_Id'),'/subnets/',variables('network_subnet_SQL_name'))]",
+
         "compute_AvailabilitySet_AO_Name": "aoAvailabilitySet",
         "compute_AvailabilitySet_AO_Id": "[resourceId('Microsoft.Compute/availabilitySets', variables('compute_AvailabilitySet_AO_Name'))]",
-
-        "compute_VM_dc1_Name": "adDC1",
 
         "compute_VM_sql1_Name": "aoSQL1",
         "compute_VM_sql1_Id": "[resourceId('Microsoft.Compute/virtualMachines',variables('compute_VM_sql1_Name'))]",
@@ -98,6 +93,9 @@
         "compute_VM_sql1_ImageOffer": "SQL2014-WS2012R2",
         "compute_VM_sql1_ImageSKU": "Enterprise",
         "compute_VM_sql1_SQLDiskSize": 1000,
+        "compute_VM_sql1_OSdisk_URI": "[concat('http://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/',variables('compute_VM_sql1_Name'), '-osdisk.vhd')]",
+        "compute_VM_sql1_DataDisk_URI": "[concat('http://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql1_Name'), '-data-1.vhd')]",
+        "compute_VM_sql1_LogDisk_URI": "[concat('http://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql1_Name'), '-log.vhd')]",
 
         "compute_VM_sql2_Name": "aoSQL2",
         "compute_VM_sql2_Id": "[resourceId('Microsoft.Compute/virtualMachines',variables('compute_VM_sql2_Name'))]",
@@ -106,6 +104,9 @@
         "compute_VM_sql2_ImageOffer": "SQL2014-WS2012R2",
         "compute_VM_sql2_ImageSKU": "Enterprise",
         "compute_VM_sql2_SQLDiskSize": 1000,
+        "compute_VM_sql2_OSDisk_URI": "[concat('http://',variables('storage_Acct_2_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/',variables('compute_VM_sql2_Name'), '-osdisk.vhd')]",
+        "compute_VM_sql2_DataDisk_URI": "[concat('http://',variables('storage_Acct_2_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql2_Name'), '-data-1.vhd')]",
+        "compute_VM_sql2_LogDisk_URI": "[concat('http://',variables('storage_Acct_2_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql2_Name'), '-log.vhd')]",
 
         "compute_VM_sqlw_Name": "aoSQLw",
         "compute_VM_sqlw_Id": "[resourceId('Microsoft.Compute/virtualMachines',variables('compute_VM_sqlw_Name'))]",
@@ -114,23 +115,23 @@
         "compute_VM_sqlw_ImageOffer": "WindowsServer",
         "compute_VM_sqlw_ImageSKU": "2012-R2-Datacenter",
         "compute_VM_sqlw_DataDiskSize": 128,
+        "compute_VM_sqlw_OSDisk_URI": "[concat('http://',variables('storage_Acct_3_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/',variables('compute_VM_sqlw_Name'), '-osdisk.vhd')]",
+        "compute_VM_sqlw_DataDisk_URI": "[concat('http://',variables('storage_Acct_3_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sqlw_Name'), '-data-1.vhd')]",
 
         "deployments_nic_TemplateURL": "[concat(parameters('assetLocation'),'/nic.json')]",
 
-        "deployments_domain_Name": "goliveIT.com",
-
         "deployments_fsw_TemplateURL": "[concat(parameters('assetLocation'),'/CreateFileShareWitness.ps1.zip')]",
         "deployments_fsw_ConfigFunction": "CreateFileShareWitness.ps1\\CreateFileShareWitness",
-        "deployments_fsw_SharePath": "[concat(parameters('AO_FQDN_Prefix'),'-fsw')]",
+        "deployments_fsw_SharePath": "[concat(parameters('alwaysOnDNSPrefix'),'-fsw')]",
         "deployments_fsw_ExtensionId": "[concat(variables('compute_VM_sqlw_Id'), '/extensions/CreateFileShareWitness')]",
 
         "deployments_sqlao_ModulesURL": "[concat(parameters('assetLocation'),'/PrepareAlwaysOnSqlServer.ps1.zip')]",
         "deployments_sqlao_ConfigFunction": "PrepareAlwaysOnSqlServer.ps1\\PrepareAlwaysOnSqlServer",
-        "deployments_sqlao_EndpointName": "[concat(parameters('AO_FQDN_Prefix'),'-hadr')]",
+        "deployments_sqlao_EndpointName": "[concat(parameters('alwaysOnDNSPrefix'),'-hadr')]",
         "deployments_sqlao_ExtensionId": "[concat(variables('compute_VM_sql1_Id'), '/extensions/sqlAOPrepare')]",
 
-		"deployments_cluster_ModulesURL":"[concat(parameters('assetLocation'),'/CreateFailoverCluster.ps1.zip')]",
-		"deployments_cluster_ConfigFunction":"CreateFailoverCluster.ps1\\CreateFailoverCluster",
+        "deployments_cluster_ModulesURL": "[concat(parameters('assetLocation'),'/CreateFailoverCluster.ps1.zip')]",
+        "deployments_cluster_ConfigFunction": "CreateFailoverCluster.ps1\\CreateFailoverCluster",
         "deployments_cluster_Name": "sqlAOCluster",
         "deployments_cluster_AOGroupName": "sqlAOGroup",
         "deployments_cluster_AOListenerName": "sqlAOListener",
@@ -170,9 +171,6 @@
 
         "network_vNet_Id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
 
-        "network_NIC_dc1_PrivateIPAddress": "10.0.0.4",
-        "network_NIC_dc2_PrivateIPAddress": "10.0.0.5",
-
         "network_NIC_sql1_Name": "sql1NIC",
         "network_NIC_sql1_Id": "[resourceId('Microsoft.Network/networkInterfaces',variables('network_NIC_sql1_Name'))]",
         "network_NIC_sql1_PrivateIPAddress": "10.0.1.4",
@@ -184,10 +182,6 @@
         "network_NIC_sqlw_Name": "sqlwNIC",
         "network_NIC_sqlw_Id": "[resourceId('Microsoft.Network/networkInterfaces',variables('network_NIC_sqlw_Name'))]",
         "network_NIC_sqlw_PrivateIPAddress": "10.0.1.10",
-
-        "network_subnet_SQL_name": "sqlSubnet",
-        "network_subnet_SQL_AddressSpace": "10.0.1.0/24",
-        "network_subnet_SQL_Id": "[concat(variables('network_vNet_Id'),'/subnets/',variables('network_subnet_SQL_name'))]",
 
         "storage_Acct_1_Name": "[concat(parameters('newStorageAccountNamePrefix'), '0')]",
         "storage_Acct_1_Id": "[resourceId('Microsoft.Storage/storageAccounts',variables('storage_Acct_1_Name'))]",
@@ -206,7 +200,7 @@
             "properties": {
                 "publicIPAllocationMethod": "Dynamic",
                 "dnsSettings": {
-                    "domainNameLabel": "[parameters('AO_FQDN_Prefix')]"
+                    "domainNameLabel": "[parameters('alwaysOnDNSPrefix')]"
                 }
             }
         },
@@ -323,8 +317,8 @@
                         "properties": {
                             "protocol": "tcp",
                             "port": 59999,
-                            "intervalInSeconds": "5",
-                            "numberOfProbes": "2"
+                            "intervalInSeconds": 5,
+                            "numberOfProbes": 2
                         }
                     }
                 ]
@@ -425,7 +419,7 @@
                 },
                 "parameters": {
                     "location": {
-                        "value": "[parameters('location')]"
+                        "value": "[resourceGroup().location]"
                     },
                     "nicName": {
                         "value": "[variables('network_NIC_sql1_Name')]"
@@ -481,7 +475,7 @@
                 },
                 "parameters": {
                     "location": {
-                        "value": "[parameters('location')]"
+                        "value": "[resourceGroup().location]"
                     },
                     "nicName": {
                         "value": "[variables('network_NIC_sql2_Name')]"
@@ -570,7 +564,7 @@
                 },
                 "parameters": {
                     "location": {
-                        "value": "[parameters('location')]"
+                        "value": "[resourceGroup().location]"
                     },
                     "nicName": {
                         "value": "[variables('network_NIC_sqlw_Name')]"
@@ -623,10 +617,10 @@
                     "vmSize": "[variables('compute_VM_sql1_Size')]"
                 },
                 "availabilitySet": {
-                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('compute_AvailabilitySet_AO_Name'))]"
+                    "id": "[variables('compute_AvailabilitySet_AO_Id')]"
                 },
                 "osProfile": {
-                    "computername": "[variables('compute_VM_sql1_Name')]",
+                    "computerName": "[variables('compute_VM_sql1_Name')]",
                     "adminUsername": "[parameters('adminUsername')]",
                     "adminPassword": "[parameters('adminPassword')]"
                 },
@@ -640,7 +634,7 @@
                     "osDisk": {
                         "name": "osdisk",
                         "vhd": {
-                            "uri": "[concat('http://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/',variables('compute_VM_sql1_Name'), '-osdisk.vhd')]"
+                            "uri": "[variables('compute_VM_sql1_OSdisk_URI')]"
                         },
                         "caching": "ReadWrite",
                         "createOption": "FromImage"
@@ -648,7 +642,7 @@
                     "dataDisks": [
                         {
                             "vhd": {
-                                "uri": "[concat('http://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql1_Name'), '-data-1.vhd')]"
+                                "uri": "[variables('compute_VM_sql1_DataDisk_URI')]"
                             },
                             "name": "[concat(variables('compute_VM_sql1_Name'),'-data-disk1')]",
                             "caching": "None",
@@ -658,7 +652,7 @@
                         },
                         {
                             "vhd": {
-                                "uri": "[concat('http://',variables('storage_Acct_1_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql1_Name'), '-log.vhd')]"
+                                "uri": "[variables('compute_VM_sql1_LogDisk_URI')]"
                             },
                             "name": "[concat(variables('compute_VM_sql1_Name'),'-log-disk1')]",
                             "caching": "None",
@@ -689,7 +683,7 @@
 			"properties": {
 				"publisher": "Microsoft.Powershell",
 				"type": "DSC",
-				"typeHandlerVersion": "2.1",
+				"typeHandlerVersion": "2.7",
 				"settings": {
 					"modulesUrl": "[variables('deployments_sqlao_ModulesURL')]",
 					"configurationFunction": "[variables('deployments_sqlao_ConfigFunction')]",
@@ -728,10 +722,10 @@
                     "vmSize": "[variables('compute_VM_sql2_Size')]"
                 },
                 "availabilitySet": {
-                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('compute_AvailabilitySet_AO_Name'))]"
+                    "id": "[variables('compute_AvailabilitySet_AO_Id')]"
                 },
                 "osProfile": {
-                    "computername": "[variables('compute_VM_sql2_Name')]",
+                    "computerName": "[variables('compute_VM_sql2_Name')]",
                     "adminUsername": "[parameters('adminUsername')]",
                     "adminPassword": "[parameters('adminPassword')]"
                 },
@@ -745,7 +739,7 @@
                     "osDisk": {
                         "name": "osdisk",
                         "vhd": {
-                            "uri": "[concat('http://',variables('storage_Acct_2_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/',variables('compute_VM_sql2_Name'), '-osdisk.vhd')]"
+                            "uri": "[variables('compute_VM_sql2_OSDisk_URI')]"
                         },
                         "caching": "ReadWrite",
                         "createOption": "FromImage"
@@ -753,7 +747,7 @@
                     "dataDisks": [
                         {
                             "vhd": {
-                                "uri": "[concat('http://',variables('storage_Acct_2_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql2_Name'), '-data-1.vhd')]"
+                                "uri": "[variables('compute_VM_sql2_DataDisk_URI')]"
                             },
                             "name": "[concat(variables('compute_VM_sql1_Name'),'-data-disk1')]",
                             "caching": "None",
@@ -763,7 +757,7 @@
                         },
                         {
                             "vhd": {
-                                "uri": "[concat('http://',variables('storage_Acct_2_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sql2_Name'), '-log.vhd')]"
+                                "uri": "[variables('compute_VM_sql2_LogDisk_URI')]"
                             },
                             "name": "[concat(variables('compute_VM_sql1_Name'),'-log-disk1')]",
                             "caching": "None",
@@ -794,7 +788,7 @@
 			"properties": {
 				"publisher": "Microsoft.Powershell",
 				"type": "DSC",
-				"typeHandlerVersion": "2.1",
+				"typeHandlerVersion": "2.7",
 				"settings": {
 					"modulesUrl": "[variables('deployments_cluster_ModulesURL')]",
 					"configurationFunction": "[variables('deployments_cluster_ConfigFunction')]",
@@ -845,10 +839,10 @@
                     "vmSize": "[variables('compute_VM_sqlw_Size')]"
                 },
                 "availabilitySet": {
-                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('compute_AvailabilitySet_AO_Name'))]"
+                    "id": "[variables('compute_AvailabilitySet_AO_Id')]"
                 },
                 "osProfile": {
-                    "computername": "[variables('compute_VM_sqlw_Name')]",
+                    "computerName": "[variables('compute_VM_sqlw_Name')]",
                     "adminUsername": "[parameters('adminUsername')]",
                     "adminPassword": "[parameters('adminPassword')]"
                 },
@@ -862,7 +856,7 @@
                     "osDisk": {
                         "name": "osdisk",
                         "vhd": {
-                            "uri": "[concat('http://',variables('storage_Acct_3_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/',variables('compute_VM_sqlw_Name'), '-osdisk.vhd')]"
+                            "uri": "[variables('compute_VM_sqlw_OSDisk_URI')]"
                         },
                         "caching": "ReadWrite",
                         "createOption": "FromImage"
@@ -870,7 +864,7 @@
                     "dataDisks": [
                         {
                             "vhd": {
-                                "uri": "[concat('http://',variables('storage_Acct_3_Name'),'.blob.core.windows.net/',variables('storage_Acct_Container_Name'),'/', variables('compute_VM_sqlw_Name'), '-data-1.vhd')]"
+                                "uri": "[variables('compute_VM_sqlw_DataDisk_URI')]"
                             },
                             "name": "[concat(variables('compute_VM_sql1_Name'),'-data-disk1')]",
                             "caching": "None",
@@ -900,7 +894,7 @@
 			"properties": {
 				"publisher": "Microsoft.Powershell",
 				"type": "DSC",
-				"typeHandlerVersion": "2.1",
+				"typeHandlerVersion": "2.7",
 				"settings": {
 					"modulesUrl": "[variables('deployments_fsw_TemplateURL')]",
 					"configurationFunction": "[variables('deployments_fsw_ConfigFunction')]",
