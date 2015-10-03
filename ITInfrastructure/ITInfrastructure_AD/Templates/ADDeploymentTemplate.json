@@ -414,7 +414,7 @@
             "properties": {
                 "publisher": "Microsoft.Powershell",
                 "type": "DSC",
-                "typeHandlerVersion": "2.1",
+                "typeHandlerVersion": "2.7",
                 "settings": {
                     "modulesUrl": "[variables('compute_VM_dc1_ModulesURL')]",
                     "configurationFunction": "[variables('compute_VM_dc1_ConfigFunction')]",
@@ -526,7 +526,7 @@
 			"properties": {
 				"publisher": "Microsoft.Powershell",
 				"type": "DSC",
-				"typeHandlerVersion": "2.1",
+				"typeHandlerVersion": "2.7",
 				"settings": {
 					"modulesUrl": "[variables('compute_VM_dc2_ModulesURL')]",
 					"configurationFunction": "[variables('compute_VM_dc2_ConfigFunction')]",
