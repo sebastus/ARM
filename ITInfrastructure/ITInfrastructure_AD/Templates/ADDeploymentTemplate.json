@@ -34,7 +34,7 @@
                 "description": "The region to deploy the resources into"
             }
         },
-        "AD_FQDN_Prefix": {
+        "adDNSPrefix": {
             "type": "string",
             "metadata": {
                 "description": "Prefix of the domain name of the AD VMs, e.g. <something>.<location>.cloudapp.azure.com"
@@ -214,7 +214,7 @@
             "properties": {
                 "publicIPAllocationMethod": "Dynamic",
                 "dnsSettings": {
-                    "domainNameLabel": "[parameters('AD_FQDN_Prefix')]"
+                    "domainNameLabel": "[parameters('adDNSPrefix')]"
                 }
             }
         },

@@ -8,7 +8,7 @@
         "location": {
             "value": "West US"
         },
-        "AD_FQDN_Prefix": {
+        "adDNSPrefix": {
             "value": "goliveit"
         },
         "vnetName": {
