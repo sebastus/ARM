@@ -29,6 +29,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\TrivialWeb.zip" />
+    <None Include="Assets\UpdateLCMforAAPull.zip" />
     <None Include="Deployment.targets">
       <Visible>False</Visible>
     </None>
