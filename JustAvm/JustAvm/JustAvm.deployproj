@@ -33,6 +33,7 @@
       <Visible>False</Visible>
     </None>
     <Content Include="Scripts\Deploy-AzureResourceGroup.ps1" />
+    <Content Include="Templates\DeploymentTemplateWithChef.json" />
     <Content Include="Templates\DeploymentTemplate.json" />
     <Content Include="Templates\DeploymentTemplateWithExtension.json" />
     <None Include="Templates\DeploymentTemplate.param.dev.json" />

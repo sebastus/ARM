@@ -1,4 +1,7 @@
 ﻿#Requires -Version 3.0
+# NOTE - 11/10/2015
+# Please deploy using Microsoft.Template rather than this script.  This script assumes Azure PowerShell v0.9.x, and v1.0 is now available.
+# https://portal.azure.com/#create/Microsoft.Template
 
 Param(
   [string] $ResourceGroupLocation = 'West US',
@@ -109,16 +112,4 @@ New-AzureResourceGroup -Name $ResourceGroupName `
                        -TemplateParameterFile $TemplateParametersFile `
                         @OptionalParameters `
                         -Force -Verbose
-
-# get the VMs that were allocated and registered with the pull server
-$nodeList = Get-AzureAutomationDscNode -ResourceGroupName golive-automation -AutomationAccountName golive `
-    -NodeConfigurationName ConfigureLCMforAAPull.isvbox
-
-# assign the correct node configuration to the new node(s)
-$nodeList | ForEach-Object { 
-
-    Set-AzureAutomationDscNode -ResourceGroupName golive-automation -AutomationAccountName golive -NodeConfigurationName ISVBoxConfig.isvbox `
-        -Id $_.Id -Force 
-
-}
 
