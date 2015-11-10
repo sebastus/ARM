@@ -28,6 +28,7 @@
     <Folder Include="Tools\" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Assets\cChoco.zip" />
     <None Include="Assets\TrivialWeb.zip" />
     <None Include="Assets\UpdateLCMforAAPull.zip" />
     <None Include="Deployment.targets">
