@@ -6,19 +6,19 @@
       "value": "West US"
     },
     "username": {
-      "value": "yourusername"
+      "value": "billybob"
     },
     "password": {
-      "value": "yourpasswd"
+      "value": "GEN-PASSWORD"
     },
     "newStorageAccountName": {
-      "value": "uniquestorageaccountprefix"
+      "value": "GEN-UNIQUE"
     },
     "vmSize": {
       "value": "Standard_D2"
     },
     "dnsNameForPublicIP": {
-      "value": "uniquednsname"
+      "value": "GEN-UNIQUE-13"
     },
     "fileUris":{
       "value":"https://myblobs.blob.core.windows.net/public/install_puppet_agent.sh"
