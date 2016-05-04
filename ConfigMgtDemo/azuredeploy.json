@@ -1,0 +1,267 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "storageAccountNamePrefix": {
+            "type": "string",
+            "maxLength": 11,
+            "metadata": {
+                "description": "Name prefix of the storage account to hold your VM disks."
+            }
+        },
+        "dnsLabelPrefixDSC": {
+            "type": "string",
+            "metadata": {
+                "description": "Prefix of prefix.region.cloudapp.azure.net.  e.g. dscprefix"
+            }
+        },
+        "adminUserName": {
+            "type": "string",
+            "metadata": {
+                "description": "Admin user name for the Virtual Machines"
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Admin password name for the Virtual Machines"
+            }
+        },
+        "location": {
+            "type": "string",
+            "metadata": {
+                "description": "Location for the VM, e.g. West US"
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_D2",
+            "metadata": {
+                "description": "VM Size for creating the Virtual Machine"
+            }
+        },
+        "aadscRegKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Registration key of your Azure Automation DSC Pull Server"
+            }
+        },
+        "aadscRegUrl": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Registration URL of your Azure Automation DSC Pull Server"
+            }
+        }
+    },
+    "variables": {
+        "apiVersion": "2015-06-15",
+        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+        "subnet1Ref": "[concat(variables('vnetID'),'/subnets/',variables('subnet1Name'))]",
+        "vmNameDSC": "[parameters('dnsLabelPrefixDSC')]",
+        "storageAccountType": "Standard_LRS",
+        "publicIPAddressNameDSC": "dscPublicIP",
+        "publicIPAddressType": "Dynamic",
+        "vmStorageAccountContainerName": "vhds",
+        "virtualNetworkName": "MyVNET",
+        "addressPrefix": "10.0.0.0/16",
+        "subnet1Name": "subnet-1",
+        "subnet1Prefix": "10.0.0.0/24",
+        "nicNameDSC": "myDSCVMNic",
+        "dnsName": "[variables('subnet1Name')]",
+        "imagePublisher": "MicrosoftWindowsServer",
+        "imageOffer": "WindowsServer",
+        "imageSKU": "2012-R2-Datacenter",
+        "storageAccountName": "[parameters('storageAccountNamePrefix')]",
+        "compute_EXT_vm_Extension1_Name": "[concat(variables('vmNameDSC'),'/dscExtension')]",
+        "compute_EXT_vm_Extension1_Id": "[concat('Microsoft.Compute/virtualMachines/',variables('vmNameDSC'),'/extensions/dscExtension')]",
+        "compute_EXT_vm_Extension1_ModulesURL": "https://golivearmstorage.blob.core.windows.net/public/UpdateLCMforAAPull.zip",
+        "compute_EXT_vm_Extension1_ConfigFunction": "UpdateLCMforAAPull.ps1\\ConfigureLCMforAAPull",
+        "compute_EXT_vm_RefreshFrequencyMins": "30",
+        "compute_EXT_vm_ConfigurationModeFrequencyMins": "15",
+        "compute_EXT_vm_NodeConfigurationName": "webHeadConfig.webHead01",
+        "compute_EXT_vm_RebootNodeIfNeeded": true,
+        "compute_EXT_vm_ActionAfterReboot": "ContinueConfiguration",
+        "compute_EXT_vm_AllowModuleOverwrite": false,
+        "compute_EXT_vm_ConfigurationMode": "ApplyAndAutoCorrect"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[variables('storageAccountName')]",
+            "apiVersion": "[variables('apiVersion')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "accountType": "[variables('storageAccountType')]"
+            }
+        },
+        {
+            "apiVersion": "[variables('apiVersion')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicIPAddressNameDSC')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('dnsLabelPrefixDSC')]"
+                }
+            }
+        },
+        {
+            "apiVersion": "[variables('apiVersion')]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('virtualNetworkName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('addressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('subnet1Name')]",
+                        "properties": {
+                            "addressPrefix": "[variables('subnet1Prefix')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "[variables('apiVersion')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('nicNameDSC')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressNameDSC'))]",
+                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressNameDSC'))]"
+                            },
+                            "subnet": {
+                                "id": "[variables('subnet1Ref')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "[variables('apiVersion')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('vmNameDSC')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
+                "[concat('Microsoft.Network/networkInterfaces/', variables('nicNameDSC'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                    "computername": "[variables('vmNameDSC')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('imagePublisher')]",
+                        "offer": "[variables('imageOffer')]",
+                        "sku": "[variables('imageSKU')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "osdisk",
+                        "vhd": {
+                            "uri": "[concat('http://',variables('storageAccountName'),'.blob.core.windows.net/vhds/','osdiskdsc.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('nicNameDSC'))]"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[variables('compute_EXT_vm_Extension1_Name')]",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[variables('vmNameDSC')]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Powershell",
+                "type": "DSC",
+                "typeHandlerVersion": "2.13",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "ModulesUrl": "[variables('compute_EXT_vm_Extension1_ModulesURL')]",
+                    "SasToken": "",
+                    "ConfigurationFunction": "[variables('compute_EXT_vm_Extension1_ConfigFunction')]",
+                    "Properties": [
+                        {
+                            "Name": "RegistrationKey",
+                            "Value": "[parameters('aadscRegKey')]",
+                            "TypeName": "System.String"
+                        },
+                        {
+                            "Name": "RegistrationUrl",
+                            "Value": "[parameters('aadscRegUrl')]",
+                            "TypeName": "System.String"
+                        },
+                        {
+                            "Name": "NodeConfigurationName",
+                            "Value": "[variables('compute_EXT_vm_NodeConfigurationName')]",
+                            "TypeName": "System.String"
+                        },
+                        {
+                            "Name": "ConfigurationMode",
+                            "Value": "[variables('compute_EXT_vm_ConfigurationMode')]",
+                            "TypeName": "System.String"
+                        },
+                        {
+                            "Name": "ConfigurationModeFrequencyMins",
+                            "Value": "[variables('compute_EXT_vm_ConfigurationModeFrequencyMins')]",
+                            "TypeName": "System.Int32"
+                        },
+                        {
+                            "Name": "RefreshFrequencyMins",
+                            "Value": "[variables('compute_EXT_vm_RefreshFrequencyMins')]",
+                            "TypeName": "System.Int32"
+                        },
+                        {
+                            "Name": "RebootNodeIfNeeded",
+                            "Value": "[variables('compute_EXT_vm_RebootNodeIfNeeded')]",
+                            "TypeName": "System.Boolean"
+                        },
+                        {
+                            "Name": "ActionAfterReboot",
+                            "Value": "[variables('compute_EXT_vm_ActionAfterReboot')]",
+                            "TypeName": "System.String"
+                        },
+                        {
+                            "Name": "AllowModuleOverwrite",
+                            "Value": "[variables('compute_EXT_vm_AllowModuleOverwrite')]",
+                            "TypeName": "System.Boolean"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}
